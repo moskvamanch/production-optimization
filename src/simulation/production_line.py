@@ -15,7 +15,8 @@ BASELINE = {
     "arrival_rate_per_hour": 12,      # raw wood boards / chair jobs per hour
 
     "cutting_machines": 2,
-    "cutting_mean_time": 4,           # minutes
+    "cutting_mean_time": 4,
+    "cutting_batch_size": 5,# minutes
 
     "drilling_machines": 2,
     "drilling_mean_time": 3,
@@ -80,14 +81,37 @@ class ChairProductionLine:
         self.finished_chairs = 0
         self.chair_id = 0
 
+    # def generate_chairs(self):
+    #     """Raw material / chair jobs arrive into the system."""
+    #     arrival_mean = 60 / self.params["arrival_rate_per_hour"]
+    #
+    #     while True:
+    #         yield self.env.timeout(arrival_mean)
+    #
+    #         self.chair_id += 1
+    #         chair = {
+    #             "id": self.chair_id,
+    #             "arrival_time": self.env.now
+    #         }
+    #
+    #         yield self.raw_input.put(chair)
+
     def generate_chairs(self):
         """Raw material / chair jobs arrive into the system."""
+
         arrival_mean = 60 / self.params["arrival_rate_per_hour"]
 
+        # Uniform interval around the mean arrival time
+        arrival_min = arrival_mean * 0.5
+        arrival_max = arrival_mean * 1.5
+
         while True:
-            yield self.env.timeout(arrival_mean)
+            interarrival_time = random.uniform(arrival_min, arrival_max)
+
+            yield self.env.timeout(interarrival_time)
 
             self.chair_id += 1
+
             chair = {
                 "id": self.chair_id,
                 "arrival_time": self.env.now
@@ -223,31 +247,81 @@ def run_simulation(
 # print("Buffer capacities:", buffers)
 # print("Throughput:", round(throughput, 2), "chairs/hour")
 
+# results = []
+#
+# for buffer4_capacity in range(1, 21):
+#     buffers = [5, buffer4_capacity,5 ,5 , 5]
+#
+#     throughput = 0
+#     for _ in range(100):
+#         throughput += run_simulation(
+#         buffer_capacities=buffers,
+#         simulation_time=5 * 8 * 60,
+#         seed=47
+#     )
+#
+#     results.append({
+#         "Buffer 4 capacity": buffer4_capacity,
+#         "Throughput": throughput
+#     })
+#
+# df = pd.DataFrame(results)
+# print(df)
+#
+# plt.figure(figsize=(8, 5))
+# plt.plot(df["Buffer 4 capacity"], df["Throughput"], marker="o")
+# plt.xlabel("Buffer 4 capacity: Assembly → Painting")
+# plt.ylabel("Throughput, chairs/hour")
+# plt.title("Throughput vs Buffer 2 Capacity")
+# plt.grid(True)
+# plt.show()
+
 results = []
 
-for buffer4_capacity in range(1, 21):
-    buffers = [5, buffer4_capacity,5 ,5 , 5]
+for tuned_buffer in range(1, 5):
 
-    throughput = 0
-    for _ in range(100):
-        throughput += run_simulation(
-        buffer_capacities=buffers,
-        simulation_time=5 * 8 * 60,
-        seed=47
-    )
+    print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
 
-    results.append({
-        "Buffer 4 capacity": buffer4_capacity,
-        "Throughput": throughput
-    })
+    for capacity in range(1, 21):
+
+        buffers = [5, 5, 5, 5, 5]
+        buffers[tuned_buffer - 1] = capacity
+
+        throughputs = []
+
+        for sim_run in range(10):
+
+            throughput = run_simulation(
+                buffer_capacities=buffers,
+                simulation_time=5 * 8 * 60,
+                seed=47 + sim_run
+            )
+
+            throughputs.append(throughput)
+
+            results.append({
+                "Tuned_Buffer": tuned_buffer,
+                "Capacity": capacity,
+                "Simulation_run": sim_run + 1,
+                "Buffer1": buffers[0],
+                "Buffer2": buffers[1],
+                "Buffer3": buffers[2],
+                "Buffer4": buffers[3],
+                "Buffer5": buffers[4],
+                "Throughput": throughput
+            })
+
+        mean_throughput = np.mean(throughputs)
+
+        print(
+            f"Buffer{tuned_buffer}={capacity} | "
+            f"Mean={mean_throughput:.2f}"
+        )
 
 df = pd.DataFrame(results)
-print(df)
+df.to_csv("single_buffer_tuning_raw.csv", index=False)
 
-plt.figure(figsize=(8, 5))
-plt.plot(df["Buffer 4 capacity"], df["Throughput"], marker="o")
-plt.xlabel("Buffer 4 capacity: Assembly → Painting")
-plt.ylabel("Throughput, chairs/hour")
-plt.title("Throughput vs Buffer 2 Capacity")
-plt.grid(True)
-plt.show()
+print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
+
+
+print("Saved: single_buffer_tuning.csv")
