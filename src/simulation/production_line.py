@@ -194,6 +194,12 @@ class ChairProductionLine:
             self.finished_chairs += 1
 
 
+def calculate_objective(throughput, buffer_capacities, alpha=0.02):
+    total_buffer_capacity = sum(buffer_capacities)
+    objective = throughput - alpha * total_buffer_capacity
+    return objective
+
+
 # -----------------------------
 # Run one simulation
 # -----------------------------
@@ -278,16 +284,19 @@ def run_simulation(
 
 results = []
 
-for tuned_buffer in range(1, 5):
+alpha = 0.1
+
+for tuned_buffer in range(1, 6):
 
     print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
 
-    for capacity in range(1, 21):
+    for capacity in range(30, 51):
 
         buffers = [5, 5, 5, 5, 5]
         buffers[tuned_buffer - 1] = capacity
 
         throughputs = []
+        objectives = []
 
         for sim_run in range(10):
 
@@ -297,7 +306,14 @@ for tuned_buffer in range(1, 5):
                 seed=47 + sim_run
             )
 
+            objective = calculate_objective(
+                throughput=throughput,
+                buffer_capacities=buffers,
+                alpha=alpha
+            )
+
             throughputs.append(throughput)
+            objectives.append(objective)
 
             results.append({
                 "Tuned_Buffer": tuned_buffer,
@@ -308,18 +324,22 @@ for tuned_buffer in range(1, 5):
                 "Buffer3": buffers[2],
                 "Buffer4": buffers[3],
                 "Buffer5": buffers[4],
-                "Throughput": throughput
+                "Total_Buffer_Capacity": sum(buffers),
+                "Throughput": throughput,
+                "Objective": objective
             })
 
         mean_throughput = np.mean(throughputs)
+        mean_objective = np.mean(objectives)
 
         print(
             f"Buffer{tuned_buffer}={capacity} | "
-            f"Mean={mean_throughput:.2f}"
+            f"Mean throughput={mean_throughput:.2f} | "
+            f"Mean objective={mean_objective:.2f}"
         )
 
 df = pd.DataFrame(results)
-df.to_csv("single_buffer_tuning_raw.csv", index=False)
+df.to_csv("single_buffer_tuning_with_cost.csv", index=False)
 
 print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
 
