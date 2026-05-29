@@ -12,11 +12,10 @@ import matplotlib.pyplot as plt
 # -----------------------------
 
 BASELINE = {
-    "arrival_rate_per_hour": 12,      # raw wood boards / chair jobs per hour
+    "arrival_rate_per_hour": 12,
 
     "cutting_machines": 2,
     "cutting_mean_time": 4,
-    "cutting_batch_size": 5,# minutes
 
     "drilling_machines": 2,
     "drilling_mean_time": 3,
@@ -38,8 +37,10 @@ BASELINE = {
     "qc_mean_time": 4,
 
     "packaging_mean_time": 3,
-}
 
+    "qc_failure_probability": 0.10,
+    "max_rework_attempts": 1,
+}
 
 # -----------------------------
 # Helper function
@@ -57,6 +58,13 @@ class ChairProductionLine:
     def __init__(self, env, params, buffer_capacities):
         self.env = env
         self.params = params
+
+        self.finished_chairs = 0
+        self.chair_id = 0
+
+        self.qc_failed_chairs = 0
+        self.reworked_chairs = 0
+        self.scrapped_chairs = 0
 
         # Decision variables: buffer capacities
         self.buffer1 = simpy.Store(env, capacity=buffer_capacities[0])  # Cutting -> Drilling
@@ -104,6 +112,12 @@ class ChairProductionLine:
         # Uniform interval around the mean arrival time
         arrival_min = arrival_mean * 0.5
         arrival_max = arrival_mean * 1.5
+
+        chair = {
+            "id": self.chair_id,
+            "arrival_time": self.env.now,
+            "rework_count": 0
+        }
 
         while True:
             interarrival_time = random.uniform(arrival_min, arrival_max)
@@ -189,9 +203,27 @@ class ChairProductionLine:
                 yield req
                 yield self.env.timeout(exp_time(self.params["qc_mean_time"]))
 
-            yield self.env.timeout(exp_time(self.params["packaging_mean_time"]))
+            if "rework_count" not in chair:
+                chair["rework_count"] = 0
+            failed = random.random() < self.params["qc_failure_probability"]
 
-            self.finished_chairs += 1
+            if failed:
+                self.qc_failed_chairs += 1
+
+            if failed and chair["rework_count"] < self.params["max_rework_attempts"]:
+                chair["rework_count"] += 1
+                self.reworked_chairs += 1
+
+                yield self.buffer3.put(chair)
+
+            elif failed:
+                self.scrapped_chairs += 1
+
+            else:
+                yield self.env.timeout(exp_time(self.params["packaging_mean_time"]))
+                self.finished_chairs += 1
+
+
 
 
 def calculate_objective(throughput, buffer_capacities, alpha=0.02):
@@ -206,33 +238,37 @@ def calculate_objective(throughput, buffer_capacities, alpha=0.02):
 
 def run_simulation(
     buffer_capacities,
+    params=None,
     simulation_time=8 * 60,
     seed=42
 ):
-    #random.seed(seed)
-    #np.random.seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+    if params is None:
+        params = BASELINE.copy()
 
     env = simpy.Environment()
-    line = ChairProductionLine(env, BASELINE, buffer_capacities)
+    line = ChairProductionLine(env, params, buffer_capacities)
 
     env.process(line.generate_chairs())
 
-    for _ in range(BASELINE["cutting_machines"]):
+    for _ in range(params["cutting_machines"]):
         env.process(line.cutting_process())
 
-    for _ in range(BASELINE["drilling_machines"]):
+    for _ in range(params["drilling_machines"]):
         env.process(line.drilling_process())
 
-    for _ in range(BASELINE["sanders"]):
+    for _ in range(params["sanders"]):
         env.process(line.sanding_process())
 
-    for _ in range(BASELINE["assembly_workers"]):
+    for _ in range(params["assembly_workers"]):
         env.process(line.assembly_process())
 
-    for _ in range(BASELINE["painting_booths"]):
+    for _ in range(params["painting_booths"]):
         env.process(line.painting_process())
 
-    for _ in range(BASELINE["drying_slots"]):
+    for _ in range(params["drying_slots"]):
         env.process(line.drying_and_qc_process())
 
     env.run(until=simulation_time)
@@ -284,64 +320,50 @@ def run_simulation(
 
 results = []
 
-alpha = 0.1
+print("\n===== TUNING PROCESSING MEAN TIMES =====")
 
-for tuned_buffer in range(1, 6):
+parameter_ranges = {
+    "cutting_mean_time": [2, 3, 4, 5, 6, 7, 8],
+    "drilling_mean_time": [1, 2, 3, 4, 5, 6],
+    "sanding_mean_time": [5, 7, 10, 12, 15, 18, 20],
+}
 
-    print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
+for param_name, values in parameter_ranges.items():
 
-    for capacity in range(30, 51):
+    print(f"\n===== TUNING {param_name} =====")
 
-        buffers = [5, 5, 5, 5, 5]
-        buffers[tuned_buffer - 1] = capacity
+    for value in values:
 
         throughputs = []
-        objectives = []
 
         for sim_run in range(10):
 
+            params = BASELINE.copy()
+            params[param_name] = value
+
             throughput = run_simulation(
-                buffer_capacities=buffers,
+                buffer_capacities=[5, 5, 5, 5, 5],
+                params=params,
                 simulation_time=5 * 8 * 60,
                 seed=47 + sim_run
             )
 
-            objective = calculate_objective(
-                throughput=throughput,
-                buffer_capacities=buffers,
-                alpha=alpha
-            )
-
             throughputs.append(throughput)
-            objectives.append(objective)
 
             results.append({
-                "Tuned_Buffer": tuned_buffer,
-                "Capacity": capacity,
+                "Parameter": param_name,
+                "Value": value,
                 "Simulation_run": sim_run + 1,
-                "Buffer1": buffers[0],
-                "Buffer2": buffers[1],
-                "Buffer3": buffers[2],
-                "Buffer4": buffers[3],
-                "Buffer5": buffers[4],
-                "Total_Buffer_Capacity": sum(buffers),
-                "Throughput": throughput,
-                "Objective": objective
+                "Throughput": throughput
             })
 
-        mean_throughput = np.mean(throughputs)
-        mean_objective = np.mean(objectives)
-
         print(
-            f"Buffer{tuned_buffer}={capacity} | "
-            f"Mean throughput={mean_throughput:.2f} | "
-            f"Mean objective={mean_objective:.2f}"
+            f"{param_name}={value} | "
+            f"Mean={np.mean(throughputs):.2f} | "
+            f"Std={np.std(throughputs):.2f}"
         )
 
 df = pd.DataFrame(results)
-df.to_csv("single_buffer_tuning_with_cost.csv", index=False)
+df.to_csv("test.csv", index=False)
 
-print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
-
-
-print("Saved: single_buffer_tuning.csv")
+print("Saved: test.csv")
