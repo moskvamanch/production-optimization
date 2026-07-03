@@ -282,197 +282,59 @@ def run_simulation(
 
 results = []
 
-alpha = 0.5
+alphas = [0.5, 1, 2, 5, 10, 15, 20]
 
-for capacity in range(1, 21):
+for alpha in alphas:
 
-    buffers = [5, 5, 5, 5, 5]
-    buffers[3] = capacity   # Buffer 4: Assembly -> Painting
+    for capacity in range(1, 21):
 
-    for sim_run in range(20):
+        buffers = [5, 5, 5, 5, 5]
+        buffers[3] = capacity   # Buffer 4: Assembly -> Painting
 
-        throughput = run_simulation(
-            buffer_capacities=buffers,
-            params=BASELINE.copy(),
-            simulation_time=5 * 8 * 60,
-            seed=47 + sim_run
-        )
+        for sim_run in range(20):
 
-        cost = sum(buffers)
-        negative_cost = -cost
-        objective = alpha * throughput - cost
+            throughput = run_simulation(
+                buffer_capacities=buffers,
+                params=BASELINE.copy(),
+                simulation_time=5 * 8 * 60,
+                seed=47 + sim_run
+            )
 
-        results.append({
-            "Buffer_4_Capacity": capacity,
-            "Simulation_run": sim_run + 1,
-            "Throughput": throughput,
-            "Cost": cost,
-            "Negative_Cost": negative_cost,
-            "Objective": objective,
-            "Alpha": alpha
-        })
+            cost = sum(buffers)
+            negative_cost = -cost
+            objective = alpha * throughput - cost
 
-        print(f'Buffer_4_Capacity: {capacity}___Throughput: {throughput}___Negative_Cost: {negative_cost}')
+            results.append({
+                "Buffer_4_Capacity": capacity,
+                "Simulation_run": sim_run + 1,
+                "Throughput": throughput,
+                "Cost": cost,
+                "Negative_Cost": negative_cost,
+                "Objective": objective,
+                "Alpha": alpha
+            })
+
+            print(f'Buffer_4_Capacity: {capacity}___Throughput: {throughput}___Negative_Cost: {negative_cost}')
+
+
 
 df = pd.DataFrame(results)
 df.to_csv("buffer4_objective_experiment.csv", index=False)
 
-# # -----------------------------
-# # Example: one configuration
-# # -----------------------------
-#
-# buffers = [5, 5, 5, 5, 5]
-#
-# throughput = run_simulation(buffers)
-#
-# print("Buffer capacities:", buffers)
-# print("Throughput:", round(throughput, 2), "chairs/hour")
+summary = df.groupby(["Alpha", "Buffer_4_Capacity"]).agg(
+    Mean_Throughput=("Throughput", "mean"),
+    Std_Throughput=("Throughput", "std"),
+    Mean_Objective=("Objective", "mean"),
+    Std_Objective=("Objective", "std"),
+    Cost=("Cost", "mean")
+).reset_index()
 
-# results = []
-#
-# for buffer4_capacity in range(1, 21):
-#     buffers = [5, buffer4_capacity,5 ,5 , 5]
-#
-#     throughput = 0
-#     for _ in range(100):
-#         throughput += run_simulation(
-#         buffer_capacities=buffers,
-#         simulation_time=5 * 8 * 60,
-#         seed=47
-#     )
-#
-#     results.append({
-#         "Buffer 4 capacity": buffer4_capacity,
-#         "Throughput": throughput
-#     })
-#
-# df = pd.DataFrame(results)
-# print(df)
-#
-# plt.figure(figsize=(8, 5))
-# plt.plot(df["Buffer 4 capacity"], df["Throughput"], marker="o")
-# plt.xlabel("Buffer 4 capacity: Assembly → Painting")
-# plt.ylabel("Throughput, chairs/hour")
-# plt.title("Throughput vs Buffer 2 Capacity")
-# plt.grid(True)
-# plt.show()
+print(summary)
+
+best_by_alpha = summary.loc[
+    summary.groupby("Alpha")["Mean_Objective"].idxmax()
+]
+
+print(best_by_alpha)
 
 
-#--------------------------------
-
-
-# results = []
-#
-# print("\n===== TUNING BUFFER CAPACITIES WITH OBJECTIVE FUNCTION =====")
-#
-# alpha = 1.0
-# beta = 0.02
-#
-# for tuned_buffer in range(1, 6):
-#
-#     print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
-#
-#     for capacity in range(1, 21):
-#
-#         buffers = [5, 5, 5, 5, 5]
-#         buffers[tuned_buffer - 1] = capacity
-#
-#         throughputs = []
-#         objectives = []
-#
-#         for sim_run in range(10):
-#
-#             throughput = run_simulation(
-#                 buffer_capacities=buffers,
-#                 params=BASELINE.copy(),
-#                 simulation_time=5 * 8 * 60,
-#                 seed=47 + sim_run
-#             )
-#
-#             objective = calculate_objective(
-#                 throughput=throughput,
-#                 buffer_capacities=buffers,
-#                 alpha=alpha,
-#                 beta = beta
-#             )
-#
-#             throughputs.append(throughput)
-#             objectives.append(objective)
-#
-#             results.append({
-#                 "Tuned_Buffer": tuned_buffer,
-#                 "Capacity": capacity,
-#                 "Simulation_run": sim_run + 1,
-#                 "Throughput": throughput,
-#                 "Objective": objective,
-#                 "Total_Buffer_Capacity": sum(buffers),
-#                 "Alpha": alpha,
-#                 "Beta": beta
-#             })
-#
-#         print(
-#             f"Buffer {tuned_buffer}, capacity={capacity} | "
-#             f"Mean throughput={np.mean(throughputs):.2f} | "
-#             f"Mean objective={np.mean(objectives):.2f} | "
-#             f"Std objective={np.std(objectives):.2f}"
-#         )
-#
-# df = pd.DataFrame(results)
-# df.to_csv("buffer_tuning_objective_raw.csv", index=False)
-#
-# print("Saved: buffer_tuning_objective_raw.csv")
-
-
-#-----------------------
-
-
-# results = []
-#
-#
-# print("\n===== TUNING PROCESSING MEAN TIMES =====")
-#
-# parameter_ranges = {
-#     "cutting_mean_time": [2, 3, 4, 5, 6, 7, 8],
-#     "drilling_mean_time": [1, 2, 3, 4, 5, 6],
-#     "sanding_mean_time": [5, 7, 10, 12, 15, 18, 20],
-# }
-#
-# for param_name, values in parameter_ranges.items():
-#
-#     print(f"\n===== TUNING {param_name} =====")
-#
-#     for value in values:
-#
-#         throughputs = []
-#
-#         for sim_run in range(10):
-#
-#             params = BASELINE.copy()
-#             params[param_name] = value
-#
-#             throughput = run_simulation(
-#                 buffer_capacities=[5, 5, 5, 5, 5],
-#                 params=params,
-#                 simulation_time=5 * 8 * 60,
-#                 seed=47 + sim_run
-#             )
-#
-#             throughputs.append(throughput)
-#
-#             results.append({
-#                 "Parameter": param_name,
-#                 "Value": value,
-#                 "Simulation_run": sim_run + 1,
-#                 "Throughput": throughput
-#             })
-#
-#         print(
-#             f"{param_name}={value} | "
-#             f"Mean={np.mean(throughputs):.2f} | "
-#             f"Std={np.std(throughputs):.2f}"
-#         )
-#
-# df = pd.DataFrame(results)
-# df.to_csv("test.csv", index=False)
-#
-# print("Saved: test.csv")
