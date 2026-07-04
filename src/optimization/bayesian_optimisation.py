@@ -39,7 +39,13 @@ class BayesianOptimizer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.all_capacities = np.arange(buffer_min, buffer_max + 1)
+        values = np.arange(buffer_min, buffer_max + 1)
+
+        self.all_capacities = [
+            (b3, b4)
+            for b3 in values
+            for b4 in values
+        ]
 
         self.evaluated_capacities = []
         self.results = []
@@ -50,12 +56,13 @@ class BayesianOptimizer:
         random.seed(random_seed)
         np.random.seed(random_seed)
 
-    def evaluate_buffer4(self, capacity):
+    def evaluate_buffers(self, b3, b4):
         """
-        Evaluate one Buffer 4 capacity using Sample Average Approximation.
+        Evaluate Buffer 3 and Buffer 4 capacities using Sample Average Approximation.
         """
         buffers = [5, 5, 5, 5, 5]
-        buffers[3] = int(capacity)
+        buffers[2] = int(b3)
+        buffers[3] = int(b4)
 
         throughputs = []
 
@@ -83,7 +90,7 @@ class BayesianOptimizer:
         """
         Fit Gaussian Process model on evaluated points.
         """
-        X_train = np.array(self.evaluated_capacities).reshape(-1, 1)
+        X_train = np.array(self.evaluated_capacities)
         y_train = np.array([r["Objective"] for r in self.results])
 
         kernel = (
@@ -129,33 +136,36 @@ class BayesianOptimizer:
 
     def choose_next_capacity(self, model):
         """
-        Choose next unevaluated integer capacity by maximizing acquisition.
+        Choose next unevaluated (b3, b4) pair by maximizing acquisition.
         """
         unevaluated = [
-            c for c in self.all_capacities
-            if c not in self.evaluated_capacities
+            pair for pair in self.all_capacities
+            if pair not in self.evaluated_capacities
         ]
 
         if len(unevaluated) == 0:
             return None
 
-        X_candidates = np.array(unevaluated).reshape(-1, 1)
+        X_candidates = np.array(unevaluated)
         acquisition_values = self.expected_improvement(X_candidates, model)
 
-        next_capacity = unevaluated[int(np.argmax(acquisition_values))]
+        next_pair = unevaluated[int(np.argmax(acquisition_values))]
 
-        return int(next_capacity)
+        return next_pair
 
-    def add_result(self, iteration, capacity, result_type):
-        objective, mean_throughput, std_throughput, cost = self.evaluate_buffer4(
-            capacity
+    def add_result(self, iteration, capacity_pair, result_type):
+        b3, b4 = capacity_pair
+
+        objective, mean_throughput, std_throughput, cost = self.evaluate_buffers(
+            b3, b4
         )
 
-        self.evaluated_capacities.append(int(capacity))
+        self.evaluated_capacities.append((int(b3), int(b4)))
 
         self.results.append({
             "Iteration": iteration,
-            "Buffer_4_Capacity": int(capacity),
+            "Buffer_3_Capacity": int(b3),
+            "Buffer_4_Capacity": int(b4),
             "Objective": objective,
             "Mean_Throughput": mean_throughput,
             "Std_Throughput": std_throughput,
@@ -170,7 +180,8 @@ class BayesianOptimizer:
         print(
             f"{result_type.upper()} | "
             f"iteration={iteration} | "
-            f"capacity={capacity} | "
+            f"b3={b3} | "
+            f"b4={b4} | "
             f"objective={objective:.3f} | "
             f"throughput={mean_throughput:.3f} | "
             f"function evals={self.function_evaluations} | "
@@ -247,38 +258,38 @@ class BayesianOptimizer:
             self.n_initial_points,
         )
 
-        for capacity in initial_points:
+        for capacity_pair in initial_points:
             self.add_result(
                 iteration=0,
-                capacity=capacity,
+                capacity_pair=capacity_pair,
                 result_type="initial",
             )
 
         model = self.build_model()
-        self.plot_gp(model, iteration=0)
+        # self.plot_gp(model, iteration=0)
 
         for iteration in range(1, self.n_iterations + 1):
             model = self.build_model()
 
-            next_capacity = self.choose_next_capacity(model)
+            next_capacity_pair = self.choose_next_capacity(model)
 
-            if next_capacity is None:
+            if next_capacity_pair is None:
                 break
 
             self.add_result(
                 iteration=iteration,
-                capacity=next_capacity,
+                capacity_pair=next_capacity_pair,
                 result_type="bayesian",
             )
 
             model = self.build_model()
-            self.plot_gp(model, iteration=iteration)
+            # self.plot_gp(model, iteration=iteration)
 
         df = pd.DataFrame(self.results)
 
         best_row = df.loc[df["Objective"].idxmax()]
 
-        output_csv = self.output_dir / "bayesian_optimization_buffer4.csv"
+        output_csv = self.output_dir / "bayesian_optimization_buffer3_buffer4.csv"
         df.to_csv(output_csv, index=False)
 
         print("\n===== Best Bayesian Optimization Result =====")
@@ -300,8 +311,8 @@ if __name__ == "__main__":
         simulation_time=5 * 8 * 60,
         buffer_min=1,
         buffer_max=20,
-        n_initial_points=4,
-        n_iterations=10,
+        n_initial_points=8,
+        n_iterations=20,
         random_seed=42,
     )
 
