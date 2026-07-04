@@ -88,7 +88,7 @@ summary = (
     .reset_index()
 )
 
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10, 6))
 
 for alpha in sorted(summary["Alpha"].unique()):
 
@@ -101,6 +101,27 @@ for alpha in sorted(summary["Alpha"].unique()):
         label=f"α = {alpha}"
     )
 
+# maximum only for alpha = 20
+alpha_20_df = summary[summary["Alpha"] == 20]
+
+best_row = alpha_20_df.loc[alpha_20_df["Mean_Objective"].idxmax()]
+best_capacity = best_row["Buffer_4_Capacity"]
+best_objective = best_row["Mean_Objective"]
+
+plt.axvline(
+    best_capacity,
+    linestyle="--",
+    label=f"Best for α = 20: capacity = {int(best_capacity)}"
+)
+
+plt.scatter(
+    best_capacity,
+    best_objective,
+    s=120,
+    zorder=5,
+    label=f"Max α = 20: J = {best_objective:.2f}"
+)
+
 plt.xlabel("Buffer 4 Capacity")
 plt.ylabel("Objective")
 plt.title("Objective Function for Different Alpha Values")
@@ -109,51 +130,8 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-
-
-# best_row = summary.loc[summary["Mean_Objective"].idxmax()]
-# best_capacity = best_row["Buffer_4_Capacity"]
-# best_objective = best_row["Mean_Objective"]
-#
-# plt.figure(figsize=(10, 6))
-#
-# plt.plot(
-#     x,
-#     summary["Mean_Objective"],
-#     marker="o",
-#     label="Mean Objective"
-# )
-#
-# plt.fill_between(
-#     x,
-#     summary["Mean_Objective"] - summary["Std_Objective"],
-#     summary["Mean_Objective"] + summary["Std_Objective"],
-#     alpha=0.3,
-#     label="±1 Std"
-# )
-#
-# plt.axvline(
-#     best_capacity,
-#     linestyle="--",
-#     label=f"Best capacity = {int(best_capacity)}"
-# )
-#
-# plt.scatter(
-#     best_capacity,
-#     best_objective,
-#     s=100,
-#     label=f"Maximum J = {best_objective:.2f}"
-# )
-#
-# plt.xlabel("Buffer 4 Capacity")
-# plt.ylabel("Objective")
-# plt.title(f"Objective Function: J = {alpha} * Throughput - Cost")
-# plt.grid(True)
-# plt.legend()
-# plt.show()
-#
-# print("Best Buffer 4 capacity:", int(best_capacity))
-# print("Best objective:", round(best_objective, 3))
+print("Best capacity for alpha = 20:", int(best_capacity))
+print("Best objective for alpha = 20:", round(best_objective, 3))
 
 
 

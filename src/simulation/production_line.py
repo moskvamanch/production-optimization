@@ -226,11 +226,11 @@ class ChairProductionLine:
 
 
 
-def calculate_objective(throughput, buffer_capacities, alpha=1.0, beta=0.02):
-    total_buffer_capacity = sum(buffer_capacities)
-    cost = beta * total_buffer_capacity
-    objective = alpha * throughput - cost
-    return objective
+# def calculate_objective(throughput, buffer_capacities, alpha=1.0, beta=0.02):
+#     total_buffer_capacity = sum(buffer_capacities)
+#     cost = beta * total_buffer_capacity
+#     objective = alpha * throughput - cost
+#     return objective
 
 
 # -----------------------------
@@ -279,62 +279,62 @@ def run_simulation(
     return throughput_per_hour
 
 
+if __name__ == "__main__":
+    results = []
 
-results = []
+    alphas = [0.5, 1, 2, 5, 10, 15, 20]
 
-alphas = [0.5, 1, 2, 5, 10, 15, 20]
+    for alpha in alphas:
 
-for alpha in alphas:
+        for capacity in range(1, 21):
 
-    for capacity in range(1, 21):
+            buffers = [5, 5, 5, 5, 5]
+            buffers[3] = capacity   # Buffer 4: Assembly -> Painting
 
-        buffers = [5, 5, 5, 5, 5]
-        buffers[3] = capacity   # Buffer 4: Assembly -> Painting
+            for sim_run in range(20):
 
-        for sim_run in range(20):
+                throughput = run_simulation(
+                    buffer_capacities=buffers,
+                    params=BASELINE.copy(),
+                    simulation_time=5 * 8 * 60,
+                    seed=47 + sim_run
+                )
 
-            throughput = run_simulation(
-                buffer_capacities=buffers,
-                params=BASELINE.copy(),
-                simulation_time=5 * 8 * 60,
-                seed=47 + sim_run
-            )
+                cost = sum(buffers)
+                negative_cost = -cost
+                objective = alpha * throughput - cost
 
-            cost = sum(buffers)
-            negative_cost = -cost
-            objective = alpha * throughput - cost
+                results.append({
+                    "Buffer_4_Capacity": capacity,
+                    "Simulation_run": sim_run + 1,
+                    "Throughput": throughput,
+                    "Cost": cost,
+                    "Negative_Cost": negative_cost,
+                    "Objective": objective,
+                    "Alpha": alpha
+                })
 
-            results.append({
-                "Buffer_4_Capacity": capacity,
-                "Simulation_run": sim_run + 1,
-                "Throughput": throughput,
-                "Cost": cost,
-                "Negative_Cost": negative_cost,
-                "Objective": objective,
-                "Alpha": alpha
-            })
-
-            print(f'Buffer_4_Capacity: {capacity}___Throughput: {throughput}___Negative_Cost: {negative_cost}')
+                print(f'Buffer_4_Capacity: {capacity}___Throughput: {throughput}___Negative_Cost: {negative_cost}')
 
 
 
-df = pd.DataFrame(results)
-df.to_csv("buffer4_objective_experiment.csv", index=False)
+    df = pd.DataFrame(results)
+    df.to_csv("buffer4_objective_experiment.csv", index=False)
 
-summary = df.groupby(["Alpha", "Buffer_4_Capacity"]).agg(
-    Mean_Throughput=("Throughput", "mean"),
-    Std_Throughput=("Throughput", "std"),
-    Mean_Objective=("Objective", "mean"),
-    Std_Objective=("Objective", "std"),
-    Cost=("Cost", "mean")
-).reset_index()
+    summary = df.groupby(["Alpha", "Buffer_4_Capacity"]).agg(
+        Mean_Throughput=("Throughput", "mean"),
+        Std_Throughput=("Throughput", "std"),
+        Mean_Objective=("Objective", "mean"),
+        Std_Objective=("Objective", "std"),
+        Cost=("Cost", "mean")
+    ).reset_index()
 
-print(summary)
+    print(summary)
 
-best_by_alpha = summary.loc[
-    summary.groupby("Alpha")["Mean_Objective"].idxmax()
-]
+    best_by_alpha = summary.loc[
+        summary.groupby("Alpha")["Mean_Objective"].idxmax()
+    ]
 
-print(best_by_alpha)
+    print(best_by_alpha)
 
 
