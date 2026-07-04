@@ -1,4 +1,5 @@
 import random
+import itertools
 import warnings
 from pathlib import Path
 
@@ -41,11 +42,10 @@ class BayesianOptimizer:
 
         values = np.arange(buffer_min, buffer_max + 1)
 
-        self.all_capacities = [
-            (b3, b4)
-            for b3 in values
-            for b4 in values
-        ]
+        self.all_capacities = list(
+            itertools.product(values, repeat=5)
+        )
+
 
         self.evaluated_capacities = []
         self.results = []
@@ -56,13 +56,11 @@ class BayesianOptimizer:
         random.seed(random_seed)
         np.random.seed(random_seed)
 
-    def evaluate_buffers(self, b3, b4):
+    def evaluate_buffers(self, buffer_capacities):
         """
-        Evaluate Buffer 3 and Buffer 4 capacities using Sample Average Approximation.
+        Evaluate all buffer capacities using Sample Average Approximation.
         """
-        buffers = [5, 5, 5, 5, 5]
-        buffers[2] = int(b3)
-        buffers[3] = int(b4)
+        buffers = [int(b) for b in buffer_capacities]
 
         throughputs = []
 
@@ -153,19 +151,22 @@ class BayesianOptimizer:
 
         return next_pair
 
-    def add_result(self, iteration, capacity_pair, result_type):
-        b3, b4 = capacity_pair
+    def add_result(self, iteration, capacity_tuple, result_type):
+        buffers = tuple(int(b) for b in capacity_tuple)
 
         objective, mean_throughput, std_throughput, cost = self.evaluate_buffers(
-            b3, b4
+            buffers
         )
 
-        self.evaluated_capacities.append((int(b3), int(b4)))
+        self.evaluated_capacities.append(buffers)
 
         self.results.append({
             "Iteration": iteration,
-            "Buffer_3_Capacity": int(b3),
-            "Buffer_4_Capacity": int(b4),
+            "Buffer_1_Capacity": buffers[0],
+            "Buffer_2_Capacity": buffers[1],
+            "Buffer_3_Capacity": buffers[2],
+            "Buffer_4_Capacity": buffers[3],
+            "Buffer_5_Capacity": buffers[4],
             "Objective": objective,
             "Mean_Throughput": mean_throughput,
             "Std_Throughput": std_throughput,
@@ -180,8 +181,7 @@ class BayesianOptimizer:
         print(
             f"{result_type.upper()} | "
             f"iteration={iteration} | "
-            f"b3={b3} | "
-            f"b4={b4} | "
+            f"buffers={buffers} | "
             f"objective={objective:.3f} | "
             f"throughput={mean_throughput:.3f} | "
             f"function evals={self.function_evaluations} | "
@@ -258,10 +258,10 @@ class BayesianOptimizer:
             self.n_initial_points,
         )
 
-        for capacity_pair in initial_points:
+        for capacity_tuple in initial_points:
             self.add_result(
                 iteration=0,
-                capacity_pair=capacity_pair,
+                capacity_tuple=capacity_tuple,
                 result_type="initial",
             )
 
@@ -278,7 +278,7 @@ class BayesianOptimizer:
 
             self.add_result(
                 iteration=iteration,
-                capacity_pair=next_capacity_pair,
+                capacity_tuple=next_capacity_pair,
                 result_type="bayesian",
             )
 
@@ -289,7 +289,7 @@ class BayesianOptimizer:
 
         best_row = df.loc[df["Objective"].idxmax()]
 
-        output_csv = self.output_dir / "bayesian_optimization_buffer3_buffer4.csv"
+        output_csv = self.output_dir / "bayesian_optimization_all_buffers.csv"
         df.to_csv(output_csv, index=False)
 
         print("\n===== Best Bayesian Optimization Result =====")
@@ -307,12 +307,12 @@ class BayesianOptimizer:
 if __name__ == "__main__":
     optimizer = BayesianOptimizer(
         alpha=20,
-        n_replications=5,
+        n_replications=20,
         simulation_time=5 * 8 * 60,
         buffer_min=1,
-        buffer_max=20,
-        n_initial_points=8,
-        n_iterations=20,
+        buffer_max=10,
+        n_initial_points=12,
+        n_iterations=25,
         random_seed=42,
     )
 
