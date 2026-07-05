@@ -188,61 +188,120 @@ class BayesianOptimizer:
             f"sim runs={self.simulation_runs}"
         )
 
-    def plot_gp(self, model, iteration):
+    # def plot_gp(self, model, iteration):
+    #     """
+    #     Plot GP mean, uncertainty interval, measured points, and current best.
+    #     """
+    #     X_plot = self.all_capacities.reshape(-1, 1)
+    #
+    #     mu, sigma = model.predict(X_plot, return_std=True)
+    #
+    #     evaluated_x = np.array(self.evaluated_capacities)
+    #     evaluated_y = np.array([r["Objective"] for r in self.results])
+    #
+    #     best_idx = np.argmax(evaluated_y)
+    #     best_x = evaluated_x[best_idx]
+    #     best_y = evaluated_y[best_idx]
+    #
+    #     plt.figure(figsize=(10, 6))
+    #
+    #     plt.plot(
+    #         self.all_capacities,
+    #         mu,
+    #         marker="o",
+    #         label="GP mean prediction",
+    #     )
+    #
+    #     plt.fill_between(
+    #         self.all_capacities,
+    #         mu - 2 * sigma,
+    #         mu + 2 * sigma,
+    #         alpha=0.2,
+    #         label="GP uncertainty ±2 std",
+    #     )
+    #
+    #     plt.scatter(
+    #         evaluated_x,
+    #         evaluated_y,
+    #         s=80,
+    #         label="Evaluated capacities",
+    #     )
+    #
+    #     plt.axvline(
+    #         best_x,
+    #         linestyle="--",
+    #         label=f"Current best capacity = {best_x}",
+    #     )
+    #
+    #     plt.xlabel("Buffer 4 Capacity")
+    #     plt.ylabel("Objective")
+    #     plt.title(f"Bayesian Optimization GP after iteration {iteration}")
+    #     plt.grid(True)
+    #     plt.legend()
+    #     plt.tight_layout()
+    #
+    #     # path = self.output_dir / f"bo_gp_iteration_{iteration}.png"
+    #     # plt.savefig(path, dpi=150)
+    #     plt.show()
+
+    def plot_bo_search_path(self, df):
         """
-        Plot GP mean, uncertainty interval, measured points, and current best.
+        Plot the sequence of evaluated buffer capacities during Bayesian Optimization.
         """
-        X_plot = self.all_capacities.reshape(-1, 1)
-
-        mu, sigma = model.predict(X_plot, return_std=True)
-
-        evaluated_x = np.array(self.evaluated_capacities)
-        evaluated_y = np.array([r["Objective"] for r in self.results])
-
-        best_idx = np.argmax(evaluated_y)
-        best_x = evaluated_x[best_idx]
-        best_y = evaluated_y[best_idx]
-
         plt.figure(figsize=(10, 6))
 
         plt.plot(
-            self.all_capacities,
-            mu,
+            df["Function_Evaluations"],
+            df["Buffer_1_Capacity"],
             marker="o",
-            label="GP mean prediction",
+            label="Buffer 1",
+        )
+        plt.plot(
+            df["Function_Evaluations"],
+            df["Buffer_2_Capacity"],
+            marker="o",
+            label="Buffer 2",
+        )
+        plt.plot(
+            df["Function_Evaluations"],
+            df["Buffer_3_Capacity"],
+            marker="o",
+            label="Buffer 3",
+        )
+        plt.plot(
+            df["Function_Evaluations"],
+            df["Buffer_4_Capacity"],
+            marker="o",
+            label="Buffer 4",
+        )
+        plt.plot(
+            df["Function_Evaluations"],
+            df["Buffer_5_Capacity"],
+            marker="o",
+            label="Buffer 5",
         )
 
-        plt.fill_between(
-            self.all_capacities,
-            mu - 2 * sigma,
-            mu + 2 * sigma,
-            alpha=0.2,
-            label="GP uncertainty ±2 std",
-        )
-
-        plt.scatter(
-            evaluated_x,
-            evaluated_y,
-            s=80,
-            label="Evaluated capacities",
-        )
+        best_idx = df["Objective"].idxmax()
+        best_eval = df.loc[best_idx, "Function_Evaluations"]
+        best_obj = df.loc[best_idx, "Objective"]
 
         plt.axvline(
-            best_x,
+            best_eval,
             linestyle="--",
-            label=f"Current best capacity = {best_x}",
+            label=f"Best objective = {best_obj:.2f}",
         )
 
-        plt.xlabel("Buffer 4 Capacity")
-        plt.ylabel("Objective")
-        plt.title(f"Bayesian Optimization GP after iteration {iteration}")
+        plt.xlabel("Function Evaluations")
+        plt.ylabel("Buffer Capacity")
+        plt.title("Bayesian Optimization Search Path Across Buffer Capacities")
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
 
-        # path = self.output_dir / f"bo_gp_iteration_{iteration}.png"
-        # plt.savefig(path, dpi=150)
+        path = self.output_dir / "bo_all_buffers_search_path.png"
+        plt.savefig(path, dpi=150)
         plt.show()
+
 
     def run(self):
         """
@@ -300,6 +359,8 @@ class BayesianOptimizer:
         print(f"Simulation runs: {self.simulation_runs}")
 
         print(f"\nSaved results to: {output_csv}")
+
+        self.plot_bo_search_path(df)
 
         return df, best_row
 
