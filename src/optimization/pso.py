@@ -47,11 +47,7 @@ class ParticleSwarmOptimizer:
         self.simulation_runs = 0
 
     def evaluate_buffers(self, position):
-        b3, b4 = position
-
-        buffers = [5, 5, 5, 5, 5]
-        buffers[2] = int(b3)
-        buffers[3] = int(b4)
+        buffers = [int(b) for b in position]
 
         throughputs = []
 
@@ -80,7 +76,7 @@ class ParticleSwarmOptimizer:
         print(f"Alpha: {self.alpha}")
         print(f"Particles: {self.n_particles}")
         print(f"Iterations: {self.n_iterations}")
-        n_dimensions = 2
+        n_dimensions = 5
 
         positions = np.random.uniform(
             self.buffer_min,
@@ -110,7 +106,7 @@ class ParticleSwarmOptimizer:
                     self.buffer_max,
                 )
 
-                b3, b4 = rounded_position
+                b1, b2, b3, b4, b5 = rounded_position
 
                 objective, mean_throughput, std_throughput, cost = self.evaluate_buffers(
                     rounded_position
@@ -127,14 +123,25 @@ class ParticleSwarmOptimizer:
                 self.results.append({
                     "Iteration": iteration,
                     "Particle": i,
+
+                    "Buffer_1_Capacity": int(b1),
+                    "Buffer_2_Capacity": int(b2),
                     "Buffer_3_Capacity": int(b3),
                     "Buffer_4_Capacity": int(b4),
+                    "Buffer_5_Capacity": int(b5),
 
-                    "Position_Buffer_3": positions[i][0],
-                    "Position_Buffer_4": positions[i][1],
+                    "Position_Buffer_1": positions[i][0],
+                    "Position_Buffer_2": positions[i][1],
+                    "Position_Buffer_3": positions[i][2],
+                    "Position_Buffer_4": positions[i][3],
+                    "Position_Buffer_5": positions[i][4],
 
-                    "Velocity_Buffer_3": velocities[i][0],
-                    "Velocity_Buffer_4": velocities[i][1],
+                    "Velocity_Buffer_1": velocities[i][0],
+                    "Velocity_Buffer_2": velocities[i][1],
+                    "Velocity_Buffer_3": velocities[i][2],
+                    "Velocity_Buffer_4": velocities[i][3],
+                    "Velocity_Buffer_5": velocities[i][4],
+
                     "Objective": objective,
                     "Mean_Throughput": mean_throughput,
                     "Std_Throughput": std_throughput,
@@ -143,18 +150,28 @@ class ParticleSwarmOptimizer:
                     "N_Replications": self.n_replications,
                     "Function_Evaluations": self.function_evaluations,
                     "Simulation_Runs": self.simulation_runs,
-                    "Personal_Best_Buffer_3": personal_best_positions[i][0],
-                    "Personal_Best_Buffer_4": personal_best_positions[i][1],
 
-                    "Global_Best_Buffer_3": global_best_position[0],
-                    "Global_Best_Buffer_4": global_best_position[1],
+                    "Personal_Best_Buffer_1": personal_best_positions[i][0],
+                    "Personal_Best_Buffer_2": personal_best_positions[i][1],
+                    "Personal_Best_Buffer_3": personal_best_positions[i][2],
+                    "Personal_Best_Buffer_4": personal_best_positions[i][3],
+                    "Personal_Best_Buffer_5": personal_best_positions[i][4],
+
+                    "Personal_Best_Objective": personal_best_scores[i],
+
+                    "Global_Best_Buffer_1": global_best_position[0],
+                    "Global_Best_Buffer_2": global_best_position[1],
+                    "Global_Best_Buffer_3": global_best_position[2],
+                    "Global_Best_Buffer_4": global_best_position[3],
+                    "Global_Best_Buffer_5": global_best_position[4],
+
+                    "Global_Best_Objective": global_best_score,
                 })
 
                 print(
                     f"iteration={iteration} | "
                     f"particle={i} | "
-                    f"b3={int(b3)} | "
-                    f"b4={int(b4)} | "
+                    f"buffers=({int(b1)}, {int(b2)}, {int(b3)}, {int(b4)}, {int(b5)}) | "
                     f"objective={objective:.3f} | "
                     f"gbest={global_best_score:.3f}"
                 )
@@ -197,7 +214,7 @@ class ParticleSwarmOptimizer:
 
         best_row = df.loc[df["Objective"].idxmax()]
 
-        output_csv = self.output_dir / "pso_buffer3_buffer4.csv"
+        output_csv = self.output_dir / "pso_all_buffers.csv"
         df.to_csv(output_csv, index=False)
 
         print("\n===== Best PSO Result =====")
@@ -215,16 +232,16 @@ class ParticleSwarmOptimizer:
 if __name__ == "__main__":
     optimizer = ParticleSwarmOptimizer(
         alpha=20,
-        n_particles=12,
-        n_iterations = 25,
+        n_particles=15,
+        n_iterations=20,
         n_replications=5,
         simulation_time=5 * 8 * 60,
         buffer_min=1,
-        buffer_max=20,
+        buffer_max=10,
         random_seed=42,
         inertia=0.8,
-        cognitive_weight = 1.2,
-        social_weight = 1.2
+        cognitive_weight=1.2,
+        social_weight=1.2,
     )
 
     optimizer.run()
