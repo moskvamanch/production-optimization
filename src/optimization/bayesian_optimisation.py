@@ -365,15 +365,29 @@ class BayesianOptimizer:
         return df, best_row
 
 
+# if __name__ == "__main__":
+#     optimizer = BayesianOptimizer(
+#         alpha=20,
+#         n_replications=20,
+#         simulation_time=5 * 8 * 60,
+#         buffer_min=1,
+#         buffer_max=10,
+#         n_initial_points=12,
+#         n_iterations=25,
+#         random_seed=42,
+#     )
+#
+#     optimizer.run()
+
 if __name__ == "__main__":
     optimizer = BayesianOptimizer(
         alpha=20,
-        n_replications=20,
+        n_replications=5,
         simulation_time=5 * 8 * 60,
         buffer_min=1,
         buffer_max=10,
-        n_initial_points=12,
-        n_iterations=25,
+        n_initial_points=10,
+        n_iterations=90,
         random_seed=42,
     )
 
