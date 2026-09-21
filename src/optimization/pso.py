@@ -236,19 +236,36 @@ class ParticleSwarmOptimizer:
         return df, best_row
 
 
+# if __name__ == "__main__":
+#     optimizer = ParticleSwarmOptimizer(
+#         alpha=20,
+#         n_particles=15,
+#         n_iterations=20,
+#         n_replications=5,
+#         simulation_time=5 * 8 * 60,
+#         buffer_min=1,
+#         buffer_max=10,
+#         random_seed=42,
+#         inertia=0.8,
+#         cognitive_weight=1.2,
+#         social_weight=1.2,
+#     )
+#
+#     optimizer.run()
+
 if __name__ == "__main__":
     optimizer = ParticleSwarmOptimizer(
         alpha=20,
-        n_particles=15,
-        n_iterations=20,
+        n_particles=10,
+        n_iterations=9,
         n_replications=5,
         simulation_time=5 * 8 * 60,
         buffer_min=1,
         buffer_max=10,
+        inertia=0.5,
+        cognitive_weight=1.5,
+        social_weight=1.5,
         random_seed=42,
-        inertia=0.8,
-        cognitive_weight=1.2,
-        social_weight=1.2,
     )
 
     optimizer.run()
