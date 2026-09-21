@@ -46,14 +46,21 @@ class ParticleSwarmOptimizer:
         self.function_evaluations = 0
         self.simulation_runs = 0
 
+    def discretize_position(self, position):
+        return np.clip(
+            np.rint(position),
+            self.buffer_min,
+            self.buffer_max,
+        ).astype(int)
+
     def evaluate_buffers(self, position):
-        buffers = [int(b) for b in position]
+        buffers = self.discretize_position(position)
 
         throughputs = []
 
         for run in range(self.n_replications):
             throughput = run_simulation(
-                buffer_capacities=buffers,
+                buffer_capacities=buffers.tolist(),
                 params=BASELINE.copy(),
                 simulation_time=self.simulation_time,
                 seed=47 + run,
@@ -63,13 +70,13 @@ class ParticleSwarmOptimizer:
         mean_throughput = np.mean(throughputs)
         std_throughput = np.std(throughputs)
 
-        cost = sum(buffers)
+        cost = int(np.sum(buffers))
         objective = self.alpha * mean_throughput - cost
 
         self.function_evaluations += 1
         self.simulation_runs += self.n_replications
 
-        return objective, mean_throughput, std_throughput, cost
+        return objective, mean_throughput, std_throughput, cost, buffers
 
     def run(self):
         print("\n===== PSO Started =====")
@@ -91,34 +98,34 @@ class ParticleSwarmOptimizer:
         )
 
         personal_best_positions = positions.copy()
+        personal_best_buffers = np.zeros(
+            (self.n_particles, n_dimensions),
+            dtype=int,
+        )
         personal_best_scores = np.full(self.n_particles, -np.inf)
 
         global_best_position = None
+        global_best_buffers = None
         global_best_score = -np.inf
 
         for iteration in range(self.n_iterations + 1):
             for i in range(self.n_particles):
 
-                rounded_position = np.rint(positions[i]).astype(int)
-                rounded_position = np.clip(
-                    rounded_position,
-                    self.buffer_min,
-                    self.buffer_max,
+                objective, mean_throughput, std_throughput, cost, evaluated_position = (
+                    self.evaluate_buffers(positions[i])
                 )
 
-                b1, b2, b3, b4, b5 = rounded_position
-
-                objective, mean_throughput, std_throughput, cost = self.evaluate_buffers(
-                    rounded_position
-                )
+                b1, b2, b3, b4, b5 = evaluated_position
 
                 if objective > personal_best_scores[i]:
                     personal_best_scores[i] = objective
-                    personal_best_positions[i] = positions[i]
+                    personal_best_positions[i] = positions[i].copy()
+                    personal_best_buffers[i] = evaluated_position.copy()
 
                 if objective > global_best_score:
                     global_best_score = objective
-                    global_best_position = positions[i]
+                    global_best_position = positions[i].copy()
+                    global_best_buffers = evaluated_position.copy()
 
                 self.results.append({
                     "Iteration": iteration,
@@ -151,19 +158,19 @@ class ParticleSwarmOptimizer:
                     "Function_Evaluations": self.function_evaluations,
                     "Simulation_Runs": self.simulation_runs,
 
-                    "Personal_Best_Buffer_1": personal_best_positions[i][0],
-                    "Personal_Best_Buffer_2": personal_best_positions[i][1],
-                    "Personal_Best_Buffer_3": personal_best_positions[i][2],
-                    "Personal_Best_Buffer_4": personal_best_positions[i][3],
-                    "Personal_Best_Buffer_5": personal_best_positions[i][4],
+                    "Personal_Best_Buffer_1": int(personal_best_buffers[i][0]),
+                    "Personal_Best_Buffer_2": int(personal_best_buffers[i][1]),
+                    "Personal_Best_Buffer_3": int(personal_best_buffers[i][2]),
+                    "Personal_Best_Buffer_4": int(personal_best_buffers[i][3]),
+                    "Personal_Best_Buffer_5": int(personal_best_buffers[i][4]),
 
                     "Personal_Best_Objective": personal_best_scores[i],
 
-                    "Global_Best_Buffer_1": global_best_position[0],
-                    "Global_Best_Buffer_2": global_best_position[1],
-                    "Global_Best_Buffer_3": global_best_position[2],
-                    "Global_Best_Buffer_4": global_best_position[3],
-                    "Global_Best_Buffer_5": global_best_position[4],
+                    "Global_Best_Buffer_1": int(global_best_buffers[0]),
+                    "Global_Best_Buffer_2": int(global_best_buffers[1]),
+                    "Global_Best_Buffer_3": int(global_best_buffers[2]),
+                    "Global_Best_Buffer_4": int(global_best_buffers[3]),
+                    "Global_Best_Buffer_5": int(global_best_buffers[4]),
 
                     "Global_Best_Objective": global_best_score,
                 })
