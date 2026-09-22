@@ -200,38 +200,44 @@ class ChairProductionLine:
 
 def run_simulation(
     buffer_capacities,
+    params=None,
     simulation_time=8 * 60,
-    seed=42
+    seed=42,
 ):
-    #random.seed(seed)
-    #np.random.seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+    if params is None:
+        params = BASELINE.copy()
 
     env = simpy.Environment()
-    line = ChairProductionLine(env, BASELINE, buffer_capacities)
+    line = ChairProductionLine(env, params, buffer_capacities)
 
     env.process(line.generate_chairs())
 
-    for _ in range(BASELINE["cutting_machines"]):
+    for _ in range(params["cutting_machines"]):
         env.process(line.cutting_process())
 
-    for _ in range(BASELINE["drilling_machines"]):
+    for _ in range(params["drilling_machines"]):
         env.process(line.drilling_process())
 
-    for _ in range(BASELINE["sanders"]):
+    for _ in range(params["sanders"]):
         env.process(line.sanding_process())
 
-    for _ in range(BASELINE["assembly_workers"]):
+    for _ in range(params["assembly_workers"]):
         env.process(line.assembly_process())
 
-    for _ in range(BASELINE["painting_booths"]):
+    for _ in range(params["painting_booths"]):
         env.process(line.painting_process())
 
-    for _ in range(BASELINE["drying_slots"]):
+    for _ in range(params["drying_slots"]):
         env.process(line.drying_and_qc_process())
 
     env.run(until=simulation_time)
 
-    throughput_per_hour = line.finished_chairs / (simulation_time / 60)
+    throughput_per_hour = (
+        line.finished_chairs / (simulation_time / 60)
+    )
 
     return throughput_per_hour
 
