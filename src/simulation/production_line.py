@@ -282,52 +282,54 @@ def run_simulation(
 # plt.grid(True)
 # plt.show()
 
-results = []
 
-for tuned_buffer in range(1, 5):
+if __name__ == "__main__":
+    results = []
 
-    print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
+    for tuned_buffer in range(1, 5):
 
-    for capacity in range(1, 21):
+        print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
 
-        buffers = [5, 5, 5, 5, 5]
-        buffers[tuned_buffer - 1] = capacity
+        for capacity in range(1, 21):
 
-        throughputs = []
+            buffers = [5, 5, 5, 5, 5]
+            buffers[tuned_buffer - 1] = capacity
 
-        for sim_run in range(10):
+            throughputs = []
 
-            throughput = run_simulation(
-                buffer_capacities=buffers,
-                simulation_time=5 * 8 * 60,
-                seed=47 + sim_run
+            for sim_run in range(10):
+
+                throughput = run_simulation(
+                    buffer_capacities=buffers,
+                    simulation_time=5 * 8 * 60,
+                    seed=47 + sim_run
+                )
+
+                throughputs.append(throughput)
+
+                results.append({
+                    "Tuned_Buffer": tuned_buffer,
+                    "Capacity": capacity,
+                    "Simulation_run": sim_run + 1,
+                    "Buffer1": buffers[0],
+                    "Buffer2": buffers[1],
+                    "Buffer3": buffers[2],
+                    "Buffer4": buffers[3],
+                    "Buffer5": buffers[4],
+                    "Throughput": throughput
+                })
+
+            mean_throughput = np.mean(throughputs)
+
+            print(
+                f"Buffer{tuned_buffer}={capacity} | "
+                f"Mean={mean_throughput:.2f}"
             )
 
-            throughputs.append(throughput)
+    df = pd.DataFrame(results)
+    df.to_csv("single_buffer_tuning_raw.csv", index=False)
 
-            results.append({
-                "Tuned_Buffer": tuned_buffer,
-                "Capacity": capacity,
-                "Simulation_run": sim_run + 1,
-                "Buffer1": buffers[0],
-                "Buffer2": buffers[1],
-                "Buffer3": buffers[2],
-                "Buffer4": buffers[3],
-                "Buffer5": buffers[4],
-                "Throughput": throughput
-            })
-
-        mean_throughput = np.mean(throughputs)
-
-        print(
-            f"Buffer{tuned_buffer}={capacity} | "
-            f"Mean={mean_throughput:.2f}"
-        )
-
-df = pd.DataFrame(results)
-df.to_csv("single_buffer_tuning_raw.csv", index=False)
-
-print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
+    print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
 
 
-print("Saved: single_buffer_tuning.csv")
+    print("Saved: single_buffer_tuning.csv")
