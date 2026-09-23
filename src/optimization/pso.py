@@ -36,8 +36,7 @@ class ParticleSwarmOptimizer:
         self.social_weight = social_weight
 
         self.random_seed = random_seed
-        random.seed(random_seed)
-        np.random.seed(random_seed)
+        self.rng = np.random.default_rng(random_seed)
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -85,13 +84,13 @@ class ParticleSwarmOptimizer:
         print(f"Iterations: {self.n_iterations}")
         n_dimensions = 5
 
-        positions = np.random.uniform(
+        positions = self.rng.uniform(
             self.buffer_min,
             self.buffer_max,
             size=(self.n_particles, n_dimensions),
         )
 
-        velocities = np.random.uniform(
+        velocities = self.rng.uniform(
             -1,
             1,
             size=(self.n_particles, n_dimensions),
@@ -184,8 +183,8 @@ class ParticleSwarmOptimizer:
                 )
 
             for i in range(self.n_particles):
-                r1 = random.random()
-                r2 = random.random()
+                r1 = self.rng.random(n_dimensions)
+                r2 = self.rng.random(n_dimensions)
 
                 cognitive = (
                     self.cognitive_weight
@@ -210,8 +209,8 @@ class ParticleSwarmOptimizer:
 
                 mutation_probability = 0.15
 
-                if random.random() < mutation_probability:
-                    positions[i] = np.random.uniform(
+                if self.rng.random() < mutation_probability:
+                    positions[i] = self.rng.uniform(
                         self.buffer_min,
                         self.buffer_max,
                         size=n_dimensions,
