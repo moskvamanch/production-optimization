@@ -1,0 +1,9 @@
+{
+  "alpha": 20,
+  "n_replications": 5,
+  "simulation_time": 2400,
+  "buffer_min": 1,
+  "buffer_max": 10,
+  "simulation_seed": 47,
+  "dimensions": 5
+}
