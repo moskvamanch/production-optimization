@@ -231,7 +231,7 @@ if __name__ == "__main__":
         n_replications=5,
         simulation_time=5 * 8 * 60,
         buffer_min=1,
-        buffer_max=20,
+        buffer_max=10,
         fixed_buffers=(5, 5, 5, 5, 5),
         # 66 evaluations in total: matches PSO with 6 particles and 10 iterations.
         n_initial_points=6,
