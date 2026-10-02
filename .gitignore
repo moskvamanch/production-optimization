@@ -1,0 +1,21 @@
+# Python environments
+.venv/
+venv/
+env/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+
+# Python cache and tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Locally generated experiment outputs
+results/*
+!results/README.md
