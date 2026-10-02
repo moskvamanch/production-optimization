@@ -2,6 +2,11 @@
 
 A discrete-event simulation study of a multi-stage wooden-chair production line. The project investigates how simulation-based optimisation methods allocate a limited capacity budget across intermediate buffers when the objective can only be observed through noisy simulation runs.
 
+
+![Production line diagram](docs/images/production_line.png)
+
+*Figure: simulated wooden-chair production line with finite buffers, batch painting, quality control, rework, and scrap.*
+
 ## Overview
 
 The model is implemented in [SimPy](https://simpy.readthedocs.io/) and represents the following process:
