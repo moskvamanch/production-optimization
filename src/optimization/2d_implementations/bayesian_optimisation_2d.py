@@ -73,6 +73,12 @@ class BayesianOptimizer2D:
             plt.close(figure)
         return output_path
 
+    def wait_for_plots(self):
+        """Keep displayed figures open after the final result is printed."""
+        if self.show_plots:
+            print("\nClose the plot window(s) to finish the program.")
+            plt.show(block=True)
+
     def full_buffer_vector(self, pair):
         """Map a 2D point (b3, b4) to a complete 5-buffer configuration."""
         b3, b4 = (int(value) for value in pair)
@@ -369,6 +375,7 @@ class BayesianOptimizer2D:
         search_path = self.plot_search_path(df)
         points_path = self.plot_evaluated_points(df)
         print(f"Saved plots to: {search_path} and {points_path}")
+        self.wait_for_plots()
         return df, best_row
 
 
