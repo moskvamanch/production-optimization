@@ -49,6 +49,16 @@ J(b) = α · T̄(b) − (b₁ + b₂ + b₃ + b₄ + b₅)
 
 The experiments use `α = 20`. Each objective evaluation is based on repeated simulation runs, so simulation noise is reduced through sample averaging.
 
+### Mathematical characteristics of the problem
+
+The throughput of a configuration is stochastic because arrivals, processing times, and quality-control outcomes are random. The quantity of interest is therefore the expected throughput, E[T(b, ω)], which is approximated by Monte Carlo simulation: T̄_R(b) = (1 / R) · Σᵣ₌₁ᴿ T(b, ωᵣ).
+
+The decision vector consists of integer capacities, b_j ∈ ℤ, within the selected lower and upper bounds. There is no analytical formula for the simulation response or its derivatives: the objective can only be observed by running the discrete-event model. The study therefore uses zero-order (derivative-free) optimisation methods, which learn from evaluated objective values rather than requiring a closed-form gradient.
+
+### Choice of α = 20
+
+The value of α was selected through a preliminary sensitivity analysis. Buffer 4 was varied from 1 to 20 while the other buffers were fixed at five; each capacity was evaluated using 20 simulation replications. Throughput improved initially and then levelled off around capacities 4–7, whereas buffer cost increased linearly. Several candidate values of α were compared. α = 20 was chosen not because it gives the numerically largest objective—objective values under different α values are not directly comparable—but because it produces an interpretable trade-off between throughput and capacity cost, with a clear interior maximum rather than a solution forced to a boundary.
+
 A function evaluation is therefore the main unit of computational cost: it consists of one candidate configuration evaluated over several stochastic replications.
 
 ## Compared methods
@@ -162,3 +172,8 @@ Generated raw CSV files, checkpoints, and plots are intentionally excluded from 
 This is a research and learning project rather than a production scheduling system. Its purpose is to compare optimisation behaviour under a controlled, stochastic simulation model. Results depend on the simulation horizon, replication count, seeds, search bounds, and evaluation budget.
 
 The repository does not claim that one optimiser is universally best. Instead, it highlights the practical trade-off between solution quality, stochastic variability, and the number of expensive simulation evaluations required to find a good configuration.
+
+## Algorithm flowcharts
+
+- [Bayesian Optimisation flowchart](docs/bo_algorithm_flowchart.pdf)
+- [Particle Swarm Optimisation flowchart](docs/pso_algorithm_flowchart.svg)
