@@ -71,6 +71,12 @@ class ParticleSwarmOptimizer2D:
             plt.close(figure)
         return output_path
 
+    def wait_for_plots(self):
+        """Keep displayed figures open after the final result is printed."""
+        if self.show_plots:
+            print("\nClose the plot window(s) to finish the program.")
+            plt.show(block=True)
+
     def discretize_position(self, position):
         """Round a continuous 2D particle position to feasible capacities."""
         return np.clip(
@@ -279,6 +285,7 @@ class ParticleSwarmOptimizer2D:
         trajectory_path = self.plot_swarm_trajectories(df)
         progress_path = self.plot_global_best_progress(df)
         print(f"Saved plots to: {trajectory_path} and {progress_path}")
+        self.wait_for_plots()
         return df, best_row
 
 
