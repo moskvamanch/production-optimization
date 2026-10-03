@@ -1,4 +1,4 @@
-# Simulation-Based Optimisation of a Stochastic Production Line
+# Simulation-Based Optimisation of a Stochastic Production Line using Zero-order optimization methods
 
 ![Production-line diagram](docs/images/production_line.png)
 
