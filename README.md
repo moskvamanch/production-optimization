@@ -41,11 +41,11 @@ They determine the capacities between cutting/drilling, drilling/sanding, sandin
 
 ## Optimisation problem
 
-For a given configuration $b$, the simulator estimates mean throughput $\bar{T}(b)$. The objective balances production performance against the installed buffer capacity:
+For a given configuration `b`, the simulator estimates mean throughput `T̄(b)`. The objective balances production performance against the installed buffer capacity:
 
-$
-J(b) = \alpha\,\bar{T}(b) - \sum_{i=1}^{5} b_i
-$
+```text
+J(b) = α · T̄(b) − (b₁ + b₂ + b₃ + b₄ + b₅)
+```
 
 The experiments use `α = 20`. Each objective evaluation is based on repeated simulation runs, so simulation noise is reduced through sample averaging.
 
