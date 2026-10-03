@@ -12,11 +12,10 @@ import matplotlib.pyplot as plt
 # -----------------------------
 
 BASELINE = {
-    "arrival_rate_per_hour": 12,      # raw wood boards / chair jobs per hour
+    "arrival_rate_per_hour": 12,
 
     "cutting_machines": 2,
     "cutting_mean_time": 4,
-    "cutting_batch_size": 5,# minutes
 
     "drilling_machines": 2,
     "drilling_mean_time": 3,
@@ -38,8 +37,10 @@ BASELINE = {
     "qc_mean_time": 4,
 
     "packaging_mean_time": 3,
-}
 
+    "qc_failure_probability": 0.10,
+    "max_rework_attempts": 1,
+}
 
 # -----------------------------
 # Helper function
@@ -57,6 +58,13 @@ class ChairProductionLine:
     def __init__(self, env, params, buffer_capacities):
         self.env = env
         self.params = params
+
+        self.finished_chairs = 0
+        self.chair_id = 0
+
+        self.qc_failed_chairs = 0
+        self.reworked_chairs = 0
+        self.scrapped_chairs = 0
 
         # Decision variables: buffer capacities
         self.buffer1 = simpy.Store(env, capacity=buffer_capacities[0])  # Cutting -> Drilling
@@ -104,6 +112,12 @@ class ChairProductionLine:
         # Uniform interval around the mean arrival time
         arrival_min = arrival_mean * 0.5
         arrival_max = arrival_mean * 1.5
+
+        chair = {
+            "id": self.chair_id,
+            "arrival_time": self.env.now,
+            "rework_count": 0
+        }
 
         while True:
             interarrival_time = random.uniform(arrival_min, arrival_max)
@@ -189,9 +203,34 @@ class ChairProductionLine:
                 yield req
                 yield self.env.timeout(exp_time(self.params["qc_mean_time"]))
 
-            yield self.env.timeout(exp_time(self.params["packaging_mean_time"]))
+            if "rework_count" not in chair:
+                chair["rework_count"] = 0
+            failed = random.random() < self.params["qc_failure_probability"]
 
-            self.finished_chairs += 1
+            if failed:
+                self.qc_failed_chairs += 1
+
+            if failed and chair["rework_count"] < self.params["max_rework_attempts"]:
+                chair["rework_count"] += 1
+                self.reworked_chairs += 1
+
+                yield self.buffer3.put(chair)
+
+            elif failed:
+                self.scrapped_chairs += 1
+
+            else:
+                yield self.env.timeout(exp_time(self.params["packaging_mean_time"]))
+                self.finished_chairs += 1
+
+
+
+
+# def calculate_objective(throughput, buffer_capacities, alpha=1.0, beta=0.02):
+#     total_buffer_capacity = sum(buffer_capacities)
+#     cost = beta * total_buffer_capacity
+#     objective = alpha * throughput - cost
+#     return objective
 
 
 # -----------------------------
@@ -200,33 +239,37 @@ class ChairProductionLine:
 
 def run_simulation(
     buffer_capacities,
+    params=None,
     simulation_time=8 * 60,
     seed=42
 ):
-    #random.seed(seed)
-    #np.random.seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+    if params is None:
+        params = BASELINE.copy()
 
     env = simpy.Environment()
-    line = ChairProductionLine(env, BASELINE, buffer_capacities)
+    line = ChairProductionLine(env, params, buffer_capacities)
 
     env.process(line.generate_chairs())
 
-    for _ in range(BASELINE["cutting_machines"]):
+    for _ in range(params["cutting_machines"]):
         env.process(line.cutting_process())
 
-    for _ in range(BASELINE["drilling_machines"]):
+    for _ in range(params["drilling_machines"]):
         env.process(line.drilling_process())
 
-    for _ in range(BASELINE["sanders"]):
+    for _ in range(params["sanders"]):
         env.process(line.sanding_process())
 
-    for _ in range(BASELINE["assembly_workers"]):
+    for _ in range(params["assembly_workers"]):
         env.process(line.assembly_process())
 
-    for _ in range(BASELINE["painting_booths"]):
+    for _ in range(params["painting_booths"]):
         env.process(line.painting_process())
 
-    for _ in range(BASELINE["drying_slots"]):
+    for _ in range(params["drying_slots"]):
         env.process(line.drying_and_qc_process())
 
     env.run(until=simulation_time)
@@ -236,92 +279,62 @@ def run_simulation(
     return throughput_per_hour
 
 
-# # -----------------------------
-# # Example: one configuration
-# # -----------------------------
-#
-# buffers = [5, 5, 5, 5, 5]
-#
-# throughput = run_simulation(buffers)
-#
-# print("Buffer capacities:", buffers)
-# print("Throughput:", round(throughput, 2), "chairs/hour")
+if __name__ == "__main__":
+    results = []
 
-# results = []
-#
-# for buffer4_capacity in range(1, 21):
-#     buffers = [5, buffer4_capacity,5 ,5 , 5]
-#
-#     throughput = 0
-#     for _ in range(100):
-#         throughput += run_simulation(
-#         buffer_capacities=buffers,
-#         simulation_time=5 * 8 * 60,
-#         seed=47
-#     )
-#
-#     results.append({
-#         "Buffer 4 capacity": buffer4_capacity,
-#         "Throughput": throughput
-#     })
-#
-# df = pd.DataFrame(results)
-# print(df)
-#
-# plt.figure(figsize=(8, 5))
-# plt.plot(df["Buffer 4 capacity"], df["Throughput"], marker="o")
-# plt.xlabel("Buffer 4 capacity: Assembly → Painting")
-# plt.ylabel("Throughput, chairs/hour")
-# plt.title("Throughput vs Buffer 2 Capacity")
-# plt.grid(True)
-# plt.show()
+    alphas = [0.5, 1, 2, 5, 10, 15, 20]
 
-results = []
+    for alpha in alphas:
 
-for tuned_buffer in range(1, 5):
+        for capacity in range(1, 21):
 
-    print(f"\n===== TUNING BUFFER {tuned_buffer} =====")
+            buffers = [5, 5, 5, 5, 5]
+            buffers[3] = capacity   # Buffer 4: Assembly -> Painting
 
-    for capacity in range(1, 21):
+            for sim_run in range(20):
 
-        buffers = [5, 5, 5, 5, 5]
-        buffers[tuned_buffer - 1] = capacity
+                throughput = run_simulation(
+                    buffer_capacities=buffers,
+                    params=BASELINE.copy(),
+                    simulation_time=5 * 8 * 60,
+                    seed=47 + sim_run
+                )
 
-        throughputs = []
+                cost = sum(buffers)
+                negative_cost = -cost
+                objective = alpha * throughput - cost
 
-        for sim_run in range(10):
+                results.append({
+                    "Buffer_4_Capacity": capacity,
+                    "Simulation_run": sim_run + 1,
+                    "Throughput": throughput,
+                    "Cost": cost,
+                    "Negative_Cost": negative_cost,
+                    "Objective": objective,
+                    "Alpha": alpha
+                })
 
-            throughput = run_simulation(
-                buffer_capacities=buffers,
-                simulation_time=5 * 8 * 60,
-                seed=47 + sim_run
-            )
-
-            throughputs.append(throughput)
-
-            results.append({
-                "Tuned_Buffer": tuned_buffer,
-                "Capacity": capacity,
-                "Simulation_run": sim_run + 1,
-                "Buffer1": buffers[0],
-                "Buffer2": buffers[1],
-                "Buffer3": buffers[2],
-                "Buffer4": buffers[3],
-                "Buffer5": buffers[4],
-                "Throughput": throughput
-            })
-
-        mean_throughput = np.mean(throughputs)
-
-        print(
-            f"Buffer{tuned_buffer}={capacity} | "
-            f"Mean={mean_throughput:.2f}"
-        )
-
-df = pd.DataFrame(results)
-df.to_csv("single_buffer_tuning_raw.csv", index=False)
-
-print(df.groupby(["Tuned_Buffer", "Capacity"]).size())
+                print(f'Buffer_4_Capacity: {capacity}___Throughput: {throughput}___Negative_Cost: {negative_cost}')
 
 
-print("Saved: single_buffer_tuning.csv")
+
+    df = pd.DataFrame(results)
+    df.to_csv("buffer4_objective_experiment.csv", index=False)
+
+    summary = df.groupby(["Alpha", "Buffer_4_Capacity"]).agg(
+        Mean_Throughput=("Throughput", "mean"),
+        Std_Throughput=("Throughput", "std"),
+        Mean_Objective=("Objective", "mean"),
+        Std_Objective=("Objective", "std"),
+        Cost=("Cost", "mean")
+    ).reset_index()
+
+    print(summary)
+
+    best_by_alpha = summary.loc[
+        summary.groupby("Alpha")["Mean_Objective"].idxmax()
+    ]
+
+    print(best_by_alpha)
+
+

@@ -19,3 +19,7 @@ __pycache__/
 # Locally generated experiment outputs
 results/*
 !results/README.md
+
+# Generated optimiser outputs
+src/optimization/results/
+src/optimization/2d_implementations/results/
