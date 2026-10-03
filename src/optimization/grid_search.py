@@ -379,7 +379,7 @@ if __name__ == "__main__":
         simulation_seed=47,
         n_workers=max(1, min(4, (os.cpu_count() or 2) - 1)),
         checkpoint_every=250,
-        resume=True,
+        resume=False,
         validation_top_k=10,
         validation_replications=50,
         validation_seed=10_000,
