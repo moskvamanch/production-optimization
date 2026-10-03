@@ -196,6 +196,129 @@ class BayesianOptimizer2D:
         plt.savefig(self.output_dir / "bo_2d_evaluated_points.png", dpi=150)
         plt.show()
 
+    def plot_iteration(self, model, next_pair, iteration):
+        """Save the Gaussian-process posterior and EI before one BO evaluation.
+
+        The figure is the two-dimensional counterpart of the usual BO plot:
+        the upper panel shows the current GP posterior mean and the lower
+        panel shows the expected-improvement acquisition function.  The black
+        cross in both panels is the point selected for the next simulation.
+        """
+        values = np.arange(self.buffer_min, self.buffer_max + 1)
+        b3_grid, b4_grid = np.meshgrid(values, values)
+        grid_points = np.column_stack((b3_grid.ravel(), b4_grid.ravel()))
+
+        posterior_mean, posterior_std = model.predict(grid_points, return_std=True)
+        acquisition = self.expected_improvement(grid_points, model)
+
+        posterior_mean = posterior_mean.reshape(b3_grid.shape)
+        posterior_std = posterior_std.reshape(b3_grid.shape)
+        acquisition = acquisition.reshape(b3_grid.shape)
+
+        observed = pd.DataFrame(self.results)
+        best_observed = observed.loc[observed["Objective"].idxmax()]
+
+        fig, axes = plt.subplots(2, 1, figsize=(8, 11), sharex=True, sharey=True)
+        extent = (
+            self.buffer_min - 0.5,
+            self.buffer_max + 0.5,
+            self.buffer_min - 0.5,
+            self.buffer_max + 0.5,
+        )
+
+        mean_plot = axes[0].imshow(
+            posterior_mean.T,
+            origin="lower",
+            extent=extent,
+            interpolation="nearest",
+            aspect="equal",
+            cmap="viridis",
+        )
+        axes[0].scatter(
+            observed["Buffer_3_Capacity"],
+            observed["Buffer_4_Capacity"],
+            facecolors="white",
+            edgecolors="#1f77b4",
+            linewidths=1.3,
+            s=48,
+            label="Observed values",
+            zorder=3,
+        )
+        axes[0].scatter(
+            best_observed["Buffer_3_Capacity"],
+            best_observed["Buffer_4_Capacity"],
+            marker="*",
+            color="gold",
+            edgecolors="black",
+            linewidths=0.6,
+            s=180,
+            label="Best observed point",
+            zorder=4,
+        )
+        axes[0].scatter(
+            next_pair[0],
+            next_pair[1],
+            marker="x",
+            color="black",
+            linewidths=2.2,
+            s=100,
+            label="Next point",
+            zorder=5,
+        )
+        axes[0].set_title("Gaussian-process posterior mean")
+        fig.colorbar(mean_plot, ax=axes[0], label="Predicted objective value")
+
+        ei_plot = axes[1].imshow(
+            acquisition.T,
+            origin="lower",
+            extent=extent,
+            interpolation="nearest",
+            aspect="equal",
+            cmap="Blues",
+        )
+        axes[1].scatter(
+            observed["Buffer_3_Capacity"],
+            observed["Buffer_4_Capacity"],
+            facecolors="none",
+            edgecolors="#1f77b4",
+            linewidths=1.3,
+            s=48,
+            label="Observed values",
+            zorder=3,
+        )
+        axes[1].scatter(
+            next_pair[0],
+            next_pair[1],
+            marker="x",
+            color="black",
+            linewidths=2.2,
+            s=100,
+            label="Next point",
+            zorder=5,
+        )
+        axes[1].set_title("Expected Improvement acquisition function")
+        fig.colorbar(ei_plot, ax=axes[1], label="Expected improvement")
+
+        for axis in axes:
+            axis.set_ylabel("Buffer 4 capacity")
+            axis.set_xticks(values)
+            axis.set_yticks(values)
+            axis.grid(False)
+            axis.legend(loc="upper left", fontsize=8)
+        axes[1].set_xlabel("Buffer 3 capacity")
+
+        fig.suptitle(
+            f"Bayesian Optimisation — iteration {iteration}: selected point "
+            f"(b3, b4) = ({next_pair[0]}, {next_pair[1]})",
+            y=0.995,
+        )
+        fig.tight_layout()
+
+        iteration_dir = self.output_dir / "iterations"
+        iteration_dir.mkdir(exist_ok=True)
+        fig.savefig(iteration_dir / f"bo_2d_iteration_{iteration:02d}.png", dpi=180)
+        plt.close(fig)
+
     def run(self):
         print("\n===== 2D Bayesian Optimisation Started =====")
         print("Optimised buffers: 3 and 4")
@@ -207,9 +330,11 @@ class BayesianOptimizer2D:
             self.add_result(iteration=0, pair=pair, result_type="initial")
 
         for iteration in range(1, self.n_iterations + 1):
-            next_pair = self.choose_next_pair(self.build_model())
+            model = self.build_model()
+            next_pair = self.choose_next_pair(model)
             if next_pair is None:
                 break
+            self.plot_iteration(model, next_pair, iteration)
             self.add_result(iteration=iteration, pair=next_pair, result_type="bayesian")
 
         df = pd.DataFrame(self.results)
