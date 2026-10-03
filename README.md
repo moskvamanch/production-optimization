@@ -1,3 +1,4 @@
+<img width="1000" height="600" alt="objective_alpha" src="https://github.com/user-attachments/assets/57cc4511-8de1-4408-ae62-ea000b50cccb" />
 # Simulation-Based Optimisation of a Stochastic Production Line
 
 ![Production-line diagram](docs/images/production_line.png)
@@ -56,6 +57,8 @@ The throughput of a configuration is stochastic because arrivals, processing tim
 The decision vector consists of integer capacities, b_j ∈ ℤ, within the selected lower and upper bounds. There is no analytical formula for the simulation response or its derivatives: the objective can only be observed by running the discrete-event model. The study therefore uses zero-order (derivative-free) optimisation methods, which learn from evaluated objective values rather than requiring a closed-form gradient.
 
 ### Choice of α = 20
+
+<img width="1000" height="600" alt="objective_alpha" src="https://github.com/user-attachments/assets/57cc4511-8de1-4408-ae62-ea000b50cccb" />
 
 The value of α was selected through a preliminary sensitivity analysis. Buffer 4 was varied from 1 to 20 while the other buffers were fixed at five; each capacity was evaluated using 20 simulation replications. Throughput improved initially and then levelled off around capacities 4–7, whereas buffer cost increased linearly. Several candidate values of α were compared. α = 20 was chosen not because it gives the numerically largest objective—objective values under different α values are not directly comparable—but because it produces an interpretable trade-off between throughput and capacity cost, with a clear interior maximum rather than a solution forced to a boundary.
 
