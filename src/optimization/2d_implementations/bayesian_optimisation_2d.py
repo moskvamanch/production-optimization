@@ -316,7 +316,9 @@ class BayesianOptimizer2D:
         iteration_dir = self.output_dir / "iterations"
         iteration_dir.mkdir(exist_ok=True)
         fig.savefig(iteration_dir / f"bo_2d_iteration_{iteration:02d}.png", dpi=180)
-        plt.show()
+        # Keep the GUI responsive without pausing the optimisation loop.
+        plt.show(block=False)
+        plt.pause(0.1)
 
     def run(self):
         print("\n===== 2D Bayesian Optimisation Started =====")
