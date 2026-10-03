@@ -33,6 +33,7 @@ class BayesianOptimizer2D:
         n_iterations=60,
         random_seed=42,
         output_dir="results/bayesian_optimization_2d",
+        show_plots=True,
     ):
         self.alpha = alpha
         self.n_replications = n_replications
@@ -49,6 +50,7 @@ class BayesianOptimizer2D:
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.show_plots = show_plots
 
         values = np.arange(buffer_min, buffer_max + 1)
         self.all_pairs = list(itertools.product(values, repeat=2))
@@ -59,6 +61,17 @@ class BayesianOptimizer2D:
 
         random.seed(random_seed)
         np.random.seed(random_seed)
+
+    def save_figure(self, figure, filename, dpi=150):
+        """Save a plot and optionally display it without blocking the run."""
+        output_path = self.output_dir / filename
+        figure.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        if self.show_plots:
+            plt.show(block=False)
+            plt.pause(0.1)
+        else:
+            plt.close(figure)
+        return output_path
 
     def full_buffer_vector(self, pair):
         """Map a 2D point (b3, b4) to a complete 5-buffer configuration."""
@@ -162,7 +175,7 @@ class BayesianOptimizer2D:
         )
 
     def plot_search_path(self, df):
-        plt.figure(figsize=(8, 5))
+        figure = plt.figure(figsize=(8, 5))
         plt.plot(df["Function_Evaluations"], df["Buffer_3_Capacity"], marker="o", label="Buffer 3")
         plt.plot(df["Function_Evaluations"], df["Buffer_4_Capacity"], marker="o", label="Buffer 4")
         plt.xlabel("Function evaluations")
@@ -171,11 +184,10 @@ class BayesianOptimizer2D:
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(self.output_dir / "bo_2d_search_path.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "bo_2d_search_path.png")
 
     def plot_evaluated_points(self, df):
-        plt.figure(figsize=(7, 6))
+        figure = plt.figure(figsize=(7, 6))
         points = plt.scatter(
             df["Buffer_3_Capacity"],
             df["Buffer_4_Capacity"],
@@ -193,8 +205,7 @@ class BayesianOptimizer2D:
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(self.output_dir / "bo_2d_evaluated_points.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "bo_2d_evaluated_points.png")
 
     def plot_iteration(self, model, next_pair, iteration):
         """Save and display the GP posterior and EI after a BO milestone.
@@ -315,10 +326,11 @@ class BayesianOptimizer2D:
 
         iteration_dir = self.output_dir / "iterations"
         iteration_dir.mkdir(exist_ok=True)
-        fig.savefig(iteration_dir / f"bo_2d_iteration_{iteration:02d}.png", dpi=180)
-        # Keep the GUI responsive without pausing the optimisation loop.
-        plt.show(block=False)
-        plt.pause(0.1)
+        return self.save_figure(
+            fig,
+            Path("iterations") / f"bo_2d_iteration_{iteration:02d}.png",
+            dpi=180,
+        )
 
     def run(self):
         print("\n===== 2D Bayesian Optimisation Started =====")
@@ -351,11 +363,12 @@ class BayesianOptimizer2D:
         output_csv = self.output_dir / "bayesian_optimization_2d.csv"
         df.to_csv(output_csv, index=False)
 
-        self.plot_search_path(df)
-        self.plot_evaluated_points(df)
         print("\n===== Best 2D BO Result =====")
         print(best_row)
         print(f"\nSaved results to: {output_csv}")
+        search_path = self.plot_search_path(df)
+        points_path = self.plot_evaluated_points(df)
+        print(f"Saved plots to: {search_path} and {points_path}")
         return df, best_row
 
 
