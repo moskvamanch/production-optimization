@@ -21,6 +21,7 @@ class GridSearch2D:
         fixed_buffers=(5, 5, 5, 5, 5),
         simulation_seed=47,
         output_dir="results/grid_search_2d",
+        show_plots=True,
     ):
         self.alpha = alpha
         self.n_replications = n_replications
@@ -39,6 +40,7 @@ class GridSearch2D:
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.show_plots = show_plots
         self.function_evaluations = 0
         self.simulation_runs = 0
 
@@ -128,7 +130,11 @@ class GridSearch2D:
 
         output_path = self.output_dir / "grid_search_2d_heatmaps.png"
         figure.savefig(output_path, dpi=180, bbox_inches="tight")
-        plt.show()
+        if self.show_plots:
+            plt.show(block=False)
+            plt.pause(0.1)
+        else:
+            plt.close(figure)
         return output_path
 
     def run(self):
@@ -174,14 +180,13 @@ class GridSearch2D:
         best_row = df.loc[df["Objective"].idxmax()]
         csv_path = self.output_dir / "grid_search_2d.csv"
         df.to_csv(csv_path, index=False)
-        heatmap_path = self.plot_heatmaps(df)
-
         print("\n===== Best 2D Grid Search Result =====")
         print(best_row)
         print("\n===== Evaluation Budget =====")
         print(f"Function evaluations: {self.function_evaluations}")
         print(f"Simulation runs: {self.simulation_runs}")
         print(f"\nSaved results to: {csv_path}")
+        heatmap_path = self.plot_heatmaps(df)
         print(f"Saved heatmaps to: {heatmap_path}")
         return df, best_row
 
