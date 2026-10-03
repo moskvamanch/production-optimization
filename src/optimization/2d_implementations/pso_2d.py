@@ -30,6 +30,7 @@ class ParticleSwarmOptimizer2D:
         mutation_probability=0.15,
         random_seed=42,
         output_dir="results/pso_2d",
+        show_plots=True,
     ):
         self.alpha = alpha
         self.n_particles = n_particles
@@ -53,10 +54,22 @@ class ParticleSwarmOptimizer2D:
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.show_plots = show_plots
 
         self.results = []
         self.function_evaluations = 0
         self.simulation_runs = 0
+
+    def save_figure(self, figure, filename):
+        """Save a plot and optionally display it without blocking the run."""
+        output_path = self.output_dir / filename
+        figure.savefig(output_path, dpi=150, bbox_inches="tight")
+        if self.show_plots:
+            plt.show(block=False)
+            plt.pause(0.1)
+        else:
+            plt.close(figure)
+        return output_path
 
     def discretize_position(self, position):
         """Round a continuous 2D particle position to feasible capacities."""
@@ -100,7 +113,7 @@ class ParticleSwarmOptimizer2D:
 
     def plot_swarm_trajectories(self, df):
         """Visualise the movement of all particles in the (b3, b4) plane."""
-        plt.figure(figsize=(7, 6))
+        figure = plt.figure(figsize=(7, 6))
         for particle, trajectory in df.groupby("Particle"):
             plt.plot(
                 trajectory["Position_Buffer_3"],
@@ -128,20 +141,18 @@ class ParticleSwarmOptimizer2D:
         plt.grid(True)
         plt.legend(ncol=2, fontsize=8)
         plt.tight_layout()
-        plt.savefig(self.output_dir / "pso_2d_particle_trajectories.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "pso_2d_particle_trajectories.png")
 
     def plot_global_best_progress(self, df):
         progress = df.groupby("Iteration", as_index=False)["Global_Best_Objective"].max()
-        plt.figure(figsize=(8, 5))
+        figure = plt.figure(figsize=(8, 5))
         plt.plot(progress["Iteration"], progress["Global_Best_Objective"], marker="o")
         plt.xlabel("Iteration")
         plt.ylabel("Best objective found so far")
         plt.title("PSO: Global-Best Objective over Iterations")
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(self.output_dir / "pso_2d_global_best_progress.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "pso_2d_global_best_progress.png")
 
     def run(self):
         print("\n===== 2D PSO Started =====")
@@ -259,15 +270,15 @@ class ParticleSwarmOptimizer2D:
         output_csv = self.output_dir / "pso_2d.csv"
         df.to_csv(output_csv, index=False)
 
-        self.plot_swarm_trajectories(df)
-        self.plot_global_best_progress(df)
-
         print("\n===== Best 2D PSO Result =====")
         print(best_row)
         print("\n===== Evaluation Budget =====")
         print(f"Function evaluations: {self.function_evaluations}")
         print(f"Simulation runs: {self.simulation_runs}")
         print(f"\nSaved results to: {output_csv}")
+        trajectory_path = self.plot_swarm_trajectories(df)
+        progress_path = self.plot_global_best_progress(df)
+        print(f"Saved plots to: {trajectory_path} and {progress_path}")
         return df, best_row
 
 
