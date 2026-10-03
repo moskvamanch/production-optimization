@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="2140" viewBox="0 0 1500 2140" role="img" aria-labelledby="title desc">
+  <title id="title">Particle Swarm Optimisation — full algorithm</title>
+  <desc id="desc">Flowchart of the five-dimensional particle swarm optimiser used for buffer-capacity optimisation.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .title { font: 700 41px Arial, Helvetica, sans-serif; fill: #1d1d1f; }
+      .subtitle { font: 22px Arial, Helvetica, sans-serif; fill: #5d5d61; }
+      .node { fill: #f2f1ee; stroke: #a8a59e; stroke-width: 1.4; }
+      .state { fill: #dff4ed; stroke: #27b78b; stroke-width: 1.4; }
+      .decision { fill: #f2f1ee; stroke: #a8a59e; stroke-width: 1.4; }
+      .node-text { font: 24px Arial, Helvetica, sans-serif; fill: #171719; text-anchor: middle; }
+      .small { font: 20px Arial, Helvetica, sans-serif; fill: #171719; text-anchor: middle; }
+      .loop { font: italic 20px Arial, Helvetica, sans-serif; fill: #9c3d1e; }
+      .note { font: 19px Arial, Helvetica, sans-serif; fill: #55555a; }
+      .arrow { stroke: #454545; stroke-width: 1.45; fill: none; marker-end: url(#arrowhead); }
+      .loop-arrow { stroke: #c25a33; stroke-width: 1.6; fill: none; stroke-dasharray: 6 6; marker-end: url(#loophead); }
+    </style>
+    <marker id="arrowhead" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#454545" stroke-width="1.2"/>
+    </marker>
+    <marker id="loophead" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#c25a33" stroke-width="1.2"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1500" height="2140"/>
+  <text class="title" x="92" y="105">Particle Swarm Optimisation — full algorithm</text>
+  <text class="subtitle" x="92" y="143">Stripped of implementation detail, the 5D PSO program does the following:</text>
+
+  <!-- Nodes -->
+  <rect class="node" x="300" y="210" width="900" height="72" rx="15"/>
+  <text class="node-text" x="750" y="255">Define the search space: b₁, …, b₅ ∈ {1, …, 10}</text>
+
+  <rect class="node" x="300" y="330" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="369">Initialise 10 particle positions xᵢ and velocities vᵢ</text>
+  <text class="small" x="750" y="399">Use a fixed random seed for reproducibility</text>
+
+  <rect class="node" x="300" y="466" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="505">Round and clip each position to an integer buffer vector</text>
+  <text class="small" x="750" y="535">bᵢ = clip(round(xᵢ), 1, 10)</text>
+
+  <rect class="node" x="300" y="602" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="641">Run 5 stochastic simulations for every particle</text>
+  <text class="small" x="750" y="671">Use the mean throughput T̄(bᵢ)</text>
+
+  <rect class="state" x="300" y="738" width="900" height="72" rx="15"/>
+  <text class="node-text" x="750" y="783">→ evaluate the initial swarm S₀</text>
+
+  <rect class="node" x="300" y="858" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="897">Compute J(bᵢ) = 20 · T̄(bᵢ) − Σⱼ bᵢⱼ</text>
+  <text class="small" x="750" y="927">Store the current particle positions, objectives and velocities</text>
+
+  <rect class="node" x="300" y="994" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="1033">Update each personal best pbestᵢ and the global best gbest</text>
+  <text class="small" x="750" y="1063">Keep a best point only when its objective improves</text>
+
+  <polygon class="decision" points="750,1120 985,1195 750,1270 515,1195"/>
+  <text class="node-text" x="750" y="1188">Iteration budget exhausted?</text>
+  <text class="small" x="750" y="1217">10 swarm evaluations</text>
+
+  <rect class="node" x="300" y="1320" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="1359">Draw random vectors r₁ and r₂ for every particle</text>
+  <text class="small" x="750" y="1389">They balance exploration with attraction to good positions</text>
+
+  <rect class="node" x="300" y="1456" width="900" height="104" rx="15"/>
+  <text class="node-text" x="750" y="1495">Update velocity</text>
+  <text class="small" x="750" y="1527">vᵢ ← wvᵢ + c₁r₁ ⊙ (pbestᵢ − xᵢ) + c₂r₂ ⊙ (gbest − xᵢ)</text>
+
+  <rect class="node" x="300" y="1608" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="1647">Update and bound the continuous particle position</text>
+  <text class="small" x="750" y="1677">xᵢ ← clip(xᵢ + vᵢ, 1, 10)</text>
+
+  <rect class="state" x="300" y="1744" width="900" height="72" rx="15"/>
+  <text class="node-text" x="750" y="1789">→ updated swarm Sₜ₊₁</text>
+
+  <rect class="node" x="300" y="1908" width="900" height="88" rx="15"/>
+  <text class="node-text" x="750" y="1947">Report the best observed buffer configuration</text>
+  <text class="small" x="750" y="1977">and save the full trajectory to a CSV file</text>
+
+  <!-- Vertical arrows -->
+  <path class="arrow" d="M750 282 L750 328"/>
+  <path class="arrow" d="M750 418 L750 464"/>
+  <path class="arrow" d="M750 554 L750 600"/>
+  <path class="arrow" d="M750 690 L750 736"/>
+  <path class="arrow" d="M750 810 L750 856"/>
+  <path class="arrow" d="M750 946 L750 992"/>
+  <path class="arrow" d="M750 1082 L750 1118"/>
+  <path class="arrow" d="M750 1272 L750 1318"/>
+  <path class="arrow" d="M750 1408 L750 1454"/>
+  <path class="arrow" d="M750 1560 L750 1606"/>
+  <path class="arrow" d="M750 1696 L750 1742"/>
+  <path class="arrow" d="M985 1195 L1325 1195 L1325 1952 L1202 1952"/>
+
+  <!-- Decision labels and loop -->
+  <text class="note" x="1015" y="1179">Yes</text>
+  <text class="note" x="775" y="1300">No</text>
+  <path class="loop-arrow" d="M300 1780 L150 1780 L150 1038 L298 1038"/>
+  <text class="loop" x="112" y="1430" transform="rotate(-90 112 1430)">repeat until the evaluation budget is exhausted</text>
+
+  <!-- Legend -->
+  <rect class="state" x="300" y="2045" width="30" height="30" rx="7"/>
+  <text class="note" x="345" y="2067">swarm state after the step above</text>
+</svg>
