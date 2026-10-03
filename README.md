@@ -57,7 +57,7 @@ The decision vector consists of integer capacities, b_j ∈ ℤ, within the sele
 
 ### Choice of α = 20
 
-<img width="700" height="600" alt="objective_alpha" src="https://github.com/user-attachments/assets/57cc4511-8de1-4408-ae62-ea000b50cccb" />
+<img width="700" height="400" alt="objective_alpha" src="https://github.com/user-attachments/assets/57cc4511-8de1-4408-ae62-ea000b50cccb" />
 
 The value of α was selected through a preliminary sensitivity analysis. Buffer 4 was varied from 1 to 20 while the other buffers were fixed at five; each capacity was evaluated using 20 simulation replications. Throughput improved initially and then levelled off around capacities 4–7, whereas buffer cost increased linearly. Several candidate values of α were compared. α = 20 was chosen not because it gives the numerically largest objective—objective values under different α values are not directly comparable—but because it produces an interpretable trade-off between throughput and capacity cost, with a clear interior maximum rather than a solution forced to a boundary.
 
