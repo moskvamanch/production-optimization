@@ -25,6 +25,7 @@ class FiniteDifferenceOptimizer2D:
         random_seed=42,
         simulation_seed=47,
         output_dir="results/finite_difference_2d",
+        show_plots=True,
     ):
         self.alpha = alpha
         self.n_replications = n_replications
@@ -53,12 +54,24 @@ class FiniteDifferenceOptimizer2D:
         self.rng = np.random.default_rng(random_seed)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.show_plots = show_plots
 
         self.cache = {}
         self.results = []
         self.function_evaluations = 0
         self.simulation_runs = 0
         self.best_result = None
+
+    def save_figure(self, figure, filename):
+        """Save a plot and optionally display it without blocking the run."""
+        output_path = self.output_dir / filename
+        figure.savefig(output_path, dpi=150, bbox_inches="tight")
+        if self.show_plots:
+            plt.show(block=False)
+            plt.pause(0.1)
+        else:
+            plt.close(figure)
+        return output_path
 
     def discretize(self, position):
         """Round a two-dimensional position and project it to the domain."""
@@ -240,7 +253,7 @@ class FiniteDifferenceOptimizer2D:
                 return candidate
 
     def plot_search_path(self, df):
-        plt.figure(figsize=(8, 5))
+        figure = plt.figure(figsize=(8, 5))
         plt.plot(df["Function_Evaluations"], df["Buffer_3_Capacity"], marker="o", label="Buffer 3")
         plt.plot(df["Function_Evaluations"], df["Buffer_4_Capacity"], marker="o", label="Buffer 4")
         plt.xlabel("Function evaluations")
@@ -249,11 +262,10 @@ class FiniteDifferenceOptimizer2D:
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(self.output_dir / "finite_difference_2d_search_path.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "finite_difference_2d_search_path.png")
 
     def plot_evaluated_points(self, df):
-        plt.figure(figsize=(7, 6))
+        figure = plt.figure(figsize=(7, 6))
         points = plt.scatter(
             df["Buffer_3_Capacity"],
             df["Buffer_4_Capacity"],
@@ -273,8 +285,7 @@ class FiniteDifferenceOptimizer2D:
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(self.output_dir / "finite_difference_2d_evaluated_points.png", dpi=150)
-        plt.show()
+        return self.save_figure(figure, "finite_difference_2d_evaluated_points.png")
 
     def run(self):
         print("\n===== 2D Finite-Difference Optimization Started =====")
@@ -356,15 +367,15 @@ class FiniteDifferenceOptimizer2D:
         output_csv = self.output_dir / "finite_difference_2d.csv"
         df.to_csv(output_csv, index=False)
 
-        self.plot_search_path(df)
-        self.plot_evaluated_points(df)
-
         print("\n===== Best 2D Finite-Difference Result =====")
         print(best_row)
         print("\n===== Evaluation Budget =====")
         print(f"Function evaluations: {self.function_evaluations}")
         print(f"Simulation runs: {self.simulation_runs}")
         print(f"\nSaved results to: {output_csv}")
+        path_search = self.plot_search_path(df)
+        path_points = self.plot_evaluated_points(df)
+        print(f"Saved plots to: {path_search} and {path_points}")
         return df, best_row
 
 
