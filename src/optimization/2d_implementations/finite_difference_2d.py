@@ -73,6 +73,12 @@ class FiniteDifferenceOptimizer2D:
             plt.close(figure)
         return output_path
 
+    def wait_for_plots(self):
+        """Keep displayed figures open after the final result is printed."""
+        if self.show_plots:
+            print("\nClose the plot window(s) to finish the program.")
+            plt.show(block=True)
+
     def discretize(self, position):
         """Round a two-dimensional position and project it to the domain."""
         return np.clip(
@@ -376,6 +382,7 @@ class FiniteDifferenceOptimizer2D:
         path_search = self.plot_search_path(df)
         path_points = self.plot_evaluated_points(df)
         print(f"Saved plots to: {path_search} and {path_points}")
+        self.wait_for_plots()
         return df, best_row
 
 
