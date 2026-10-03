@@ -44,6 +44,12 @@ class GridSearch2D:
         self.function_evaluations = 0
         self.simulation_runs = 0
 
+    def wait_for_plots(self):
+        """Keep displayed figures open after the final result is printed."""
+        if self.show_plots:
+            print("\nClose the plot window(s) to finish the program.")
+            plt.show(block=True)
+
     def full_buffer_vector(self, pair):
         """Map (b3, b4) to the full simulator input vector."""
         b3, b4 = (int(value) for value in pair)
@@ -188,6 +194,7 @@ class GridSearch2D:
         print(f"\nSaved results to: {csv_path}")
         heatmap_path = self.plot_heatmaps(df)
         print(f"Saved heatmaps to: {heatmap_path}")
+        self.wait_for_plots()
         return df, best_row
 
 
