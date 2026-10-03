@@ -197,7 +197,7 @@ class BayesianOptimizer2D:
         plt.show()
 
     def plot_iteration(self, model, next_pair, iteration):
-        """Save the Gaussian-process posterior and EI before one BO evaluation.
+        """Save and display the GP posterior and EI after a BO milestone.
 
         The figure is the two-dimensional counterpart of the usual BO plot:
         the upper panel shows the current GP posterior mean and the lower
@@ -208,11 +208,10 @@ class BayesianOptimizer2D:
         b3_grid, b4_grid = np.meshgrid(values, values)
         grid_points = np.column_stack((b3_grid.ravel(), b4_grid.ravel()))
 
-        posterior_mean, posterior_std = model.predict(grid_points, return_std=True)
+        posterior_mean = model.predict(grid_points)
         acquisition = self.expected_improvement(grid_points, model)
 
         posterior_mean = posterior_mean.reshape(b3_grid.shape)
-        posterior_std = posterior_std.reshape(b3_grid.shape)
         acquisition = acquisition.reshape(b3_grid.shape)
 
         observed = pd.DataFrame(self.results)
@@ -317,7 +316,7 @@ class BayesianOptimizer2D:
         iteration_dir = self.output_dir / "iterations"
         iteration_dir.mkdir(exist_ok=True)
         fig.savefig(iteration_dir / f"bo_2d_iteration_{iteration:02d}.png", dpi=180)
-        plt.close(fig)
+        plt.show()
 
     def run(self):
         print("\n===== 2D Bayesian Optimisation Started =====")
@@ -334,8 +333,16 @@ class BayesianOptimizer2D:
             next_pair = self.choose_next_pair(model)
             if next_pair is None:
                 break
-            self.plot_iteration(model, next_pair, iteration)
             self.add_result(iteration=iteration, pair=next_pair, result_type="bayesian")
+
+            # Show the BO state only after every ten completed evaluations.
+            # The marked cross is the candidate with the highest EI for the
+            # next evaluation, based on all observations so far.
+            if iteration % 10 == 0:
+                updated_model = self.build_model()
+                candidate = self.choose_next_pair(updated_model)
+                if candidate is not None:
+                    self.plot_iteration(updated_model, candidate, iteration)
 
         df = pd.DataFrame(self.results)
         best_row = df.loc[df["Objective"].idxmax()]
